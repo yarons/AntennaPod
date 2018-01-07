@@ -48,7 +48,7 @@
             android:id="@+id/playtime_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp"
+            android:paddingTop="16dp"
             android:layout_alignParentBottom="true"
             android:background="#44000000"
             android:orientation="vertical">
