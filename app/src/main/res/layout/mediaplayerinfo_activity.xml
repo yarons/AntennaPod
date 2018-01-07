@@ -10,11 +10,14 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="#aa000000">
 
         <android.support.design.widget.AppBarLayout
             android:id="@+id/appBar"
             android:layout_width="match_parent"
+            android:background="#00000000"
+            app:elevation="0dp"
             android:layout_height="wrap_content">
 
         <android.support.v7.widget.Toolbar
@@ -22,7 +25,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:background="?attr/colorPrimary"
+            android:background="#00000000"
+            app:elevation="0dp"
             android:minHeight="?attr/actionBarSize"
             tools:background="@android:color/darker_gray"/>
 
@@ -46,7 +50,7 @@
             android:layout_height="wrap_content"
             android:paddingTop="8dp"
             android:layout_alignParentBottom="true"
-            android:background="?attr/overlay_drawable"
+            android:background="#44000000"
             android:orientation="vertical">
 
 
@@ -98,7 +102,6 @@
                 android:layout_height="wrap_content"
                 android:paddingTop="4dp"
                 android:paddingBottom="8dp"
-                android:background="?attr/overlay_background"
                 tools:background="@android:color/holo_purple">
 
                 <ImageButton
