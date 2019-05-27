@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import de.danoeh.antennapod.core.feed.Feed;
 import de.danoeh.antennapod.core.feed.FeedFile;
 import de.danoeh.antennapod.core.util.URLChecker;
 
@@ -247,6 +248,19 @@ public class DownloadRequest implements Parcelable {
 
     public Bundle getArguments() {
         return arguments;
+    }
+
+    public boolean isLocalFeed() {
+        return getSource().startsWith("file:");
+    }
+
+    public static DownloadRequest forLocalFeed(Feed feed) {
+        return new DownloadRequest("",
+                feed.getDownload_url(),
+                feed.getTitle(),
+                feed.getId(),
+                Feed.FEEDFILETYPE_FEED,
+                null, null, false, null);
     }
 
     public static class Builder {

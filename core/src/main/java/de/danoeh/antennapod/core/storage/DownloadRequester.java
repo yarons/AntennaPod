@@ -169,6 +169,10 @@ public class DownloadRequester {
     public synchronized void downloadFeed(Context context, Feed feed, boolean loadAllPages,
                                           boolean force)
             throws DownloadRequestException {
+        if (feed.isLocalFeed()) {
+            download(context, DownloadRequest.forLocalFeed(feed));
+            return;
+        }
         if (feedFileValid(feed)) {
             String username = (feed.getPreferences() != null) ? feed.getPreferences().getUsername() : null;
             String password = (feed.getPreferences() != null) ? feed.getPreferences().getPassword() : null;

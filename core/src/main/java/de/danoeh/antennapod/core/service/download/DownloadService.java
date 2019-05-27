@@ -19,6 +19,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.webkit.URLUtil;
 
+import de.danoeh.antennapod.core.feed.LocalFeedUpdater;
 import org.apache.commons.io.FileUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.xml.sax.SAXException;
@@ -29,6 +30,7 @@ import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -410,8 +412,9 @@ public class DownloadService extends Service {
             throw new IllegalArgumentException(
                     "ACTION_ENQUEUE_DOWNLOAD intent needs request extra");
         }
-
-        writeFileUrl(request);
+        if (!request.isLocalFeed()) {
+            writeFileUrl(request);
+        }
 
         Downloader downloader = getDownloader(request);
         if (downloader != null) {
@@ -431,6 +434,9 @@ public class DownloadService extends Service {
     }
 
     private Downloader getDownloader(DownloadRequest request) {
+        if (request.isLocalFeed()) {
+            return new LocalFeedDownloaderStub(request);
+        }
         if (!URLUtil.isHttpUrl(request.getSource()) && !URLUtil.isHttpsUrl(request.getSource())) {
             Log.e(TAG, "Could not find appropriate downloader for " + request.getSource());
             return null;
@@ -754,8 +760,20 @@ public class DownloadService extends Service {
 
             @Override
             public Pair<DownloadRequest, FeedHandlerResult> call() throws Exception {
+                if (request.isLocalFeed()) {
+                    return parseLocalFeed(request);
+                }
                 return parseFeed(request);
             }
+        }
+
+        private Pair<DownloadRequest, FeedHandlerResult> parseLocalFeed(DownloadRequest request) {
+            Feed feed = DBReader.getFeed(request.getFeedfileId());
+            LocalFeedUpdater.updateFeed(feed, getBaseContext());
+            FeedHandlerResult result = new FeedHandlerResult(feed, new HashMap<>());
+            DownloadRequest.Builder builder = new DownloadRequest.Builder("", feed);
+            builder.deleteOnFailure(false);
+            return Pair.create(builder.build(), result);
         }
 
         private Pair<DownloadRequest, FeedHandlerResult> parseFeed(DownloadRequest request) {
