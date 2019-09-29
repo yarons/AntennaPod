@@ -1,6 +1,6 @@
 package de.danoeh.antennapod.viewmodel;
 
-import android.arch.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModel;
 import de.danoeh.antennapod.core.feed.Feed;
 import de.danoeh.antennapod.core.storage.DBReader;
 import io.reactivex.Maybe;
