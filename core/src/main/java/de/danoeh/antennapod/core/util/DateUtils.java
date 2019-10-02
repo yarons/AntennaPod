@@ -153,6 +153,11 @@ public class DateUtils {
         return format.format(date);
     }
 
+    public static String ddmmyyyy(Date date) {
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy", Locale.US);
+        return format.format(date);
+    }
+
     public static String formatRFC3339UTC(Date date) {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         format.setTimeZone(defaultTimezone);

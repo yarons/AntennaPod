@@ -443,7 +443,6 @@ public class FeedItemlistFragment extends ListFragment {
         refreshHeaderView();
         setListShown(true);
         adapter.notifyDataSetChanged();
-
         getActivity().supportInvalidateOptionsMenu();
 
         if (feed != null && feed.getNextPageLink() == null && listFooter != null) {

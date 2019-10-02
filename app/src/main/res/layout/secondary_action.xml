@@ -7,6 +7,8 @@
     android:background="?attr/selectableItemBackground"
     android:clickable="false"
     android:focusable="false"
+             android:paddingRight="8dp"
+             android:paddingEnd="8dp"
     android:focusableInTouchMode="false"
     tools:ignore="ContentDescription"
     tools:src="@sample/secondaryaction" />

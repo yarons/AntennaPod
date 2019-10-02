@@ -3,6 +3,7 @@ package de.danoeh.antennapod.adapter;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Build;
+import android.util.Log;
 import androidx.core.content.ContextCompat;
 import android.text.Layout;
 import android.view.LayoutInflater;
@@ -17,6 +18,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.joanzapata.iconify.Iconify;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.adapter.actionbutton.ItemActionButton;
 import de.danoeh.antennapod.core.event.PlaybackPositionEvent;
@@ -27,6 +29,7 @@ import de.danoeh.antennapod.core.storage.DownloadRequester;
 import de.danoeh.antennapod.core.util.Converter;
 import de.danoeh.antennapod.core.util.DateUtils;
 import de.danoeh.antennapod.core.util.LongList;
+import de.danoeh.antennapod.core.util.NetworkUtils;
 import de.danoeh.antennapod.core.util.ThemeUtils;
 
 /**
@@ -124,7 +127,7 @@ public class FeedItemlistAdapter extends BaseAdapter {
             if(item.isNew()) {
                 holder.statusUnread.setVisibility(View.VISIBLE);
             } else {
-                holder.statusUnread.setVisibility(View.INVISIBLE);
+                holder.statusUnread.setVisibility(View.GONE);
             }
             if(item.isPlayed() && makePlayedItemsTransparent) {
                 convertView.setAlpha(0.5f);
@@ -132,33 +135,79 @@ public class FeedItemlistAdapter extends BaseAdapter {
                 convertView.setAlpha(1.0f);
             }
 
-            String pubDateStr = DateUtils.formatAbbrev(context, item.getPubDate());
+            String pubDateStr = DateUtils.ddmmyyyy(item.getPubDate());
             holder.published.setText(pubDateStr);
 
             boolean isInQueue = item.isTagged(FeedItem.TAG_QUEUE);
 
             FeedMedia media = item.getMedia();
             if (media == null) {
-                holder.episodeProgress.setVisibility(View.INVISIBLE);
-                holder.inPlaylist.setVisibility(View.INVISIBLE);
-                holder.type.setVisibility(View.INVISIBLE);
-                holder.lenSize.setVisibility(View.INVISIBLE);
+                holder.episodeProgress.setVisibility(View.GONE);
+                holder.inPlaylist.setVisibility(View.GONE);
+                holder.type.setVisibility(View.GONE);
+                holder.lenSize.setVisibility(View.GONE);
             } else {
+                ProgressBar episodeProgress = holder.episodeProgress;
+                TextView txtvPos = holder.lenSize;
 
-                AdapterUtils.updateEpisodePlaybackProgress(item, holder.lenSize, holder.episodeProgress);
+                episodeProgress.setVisibility(View.GONE);
+                if (media == null) {
+                    txtvPos.setVisibility(View.GONE);
+                } else {
+                    txtvPos.setVisibility(View.VISIBLE);
+                }
+
+                FeedItem.State state = item.getState();
+                if (state == FeedItem.State.PLAYING
+                        || state == FeedItem.State.IN_PROGRESS) {
+                    if (media.getDuration() > 0) {
+                        episodeProgress.setVisibility(View.VISIBLE);
+                        episodeProgress.setProgress((int) (((double) media
+                                .getPosition()) / media.getDuration() * 100));
+                        txtvPos.setText(Converter.getDurationStringLong(media.getDuration()
+                                - media.getPosition()));
+                    }
+                }
+                TextView txtvSize =  holder.container.findViewById(R.id.txtvSize);
+                    if (media.getSize() > 0) {
+                        txtvSize.setText(" · " + Converter.byteToString(media.getSize()) + " · ");
+                    } else if(NetworkUtils.isEpisodeHeadDownloadAllowed() && !media.checkedOnSizeButUnknown()) {
+                        txtvPos.setText("{fa-spinner}");
+                        Iconify.addIcons(txtvPos);
+                        NetworkUtils.getFeedMediaSizeObservable(media)
+                                .subscribe(
+                                        size -> {
+                                            if (size > 0) {
+                                                txtvPos.setText(Converter.byteToString(size));
+                                            } else {
+                                                txtvPos.setText("");
+                                            }
+                                        }, error -> {
+                                            txtvPos.setText("");
+                                        });
+                    } else {
+                        txtvPos.setText("");
+                    }
+
+                ((TextView)holder.container.findViewById(R.id.txtvLen))
+                        .setText(Converter.getDurationStringLong(media.getDuration()));
+
+                    txtvPos.setText(Converter.getDurationStringLong(media.getDuration()));
 
                 if (isInQueue) {
                     holder.inPlaylist.setVisibility(View.VISIBLE);
                 } else {
-                    holder.inPlaylist.setVisibility(View.INVISIBLE);
+                    holder.inPlaylist.setVisibility(View.GONE);
                 }
 
+                holder.container.findViewById(R.id.episode_progress).setVisibility(View.VISIBLE);
                 if (DownloadRequester.getInstance().isDownloadingFile(item.getMedia())) {
                     holder.episodeProgress.setVisibility(View.VISIBLE);
                     holder.episodeProgress.setProgress(itemAccess.getItemDownloadProgressPercent(item));
                 } else {
                     if(media.getPosition() == 0) {
-                        holder.episodeProgress.setVisibility(View.INVISIBLE);
+                        holder.container.findViewById(R.id.episode_progress).setVisibility(View.GONE);
+                        holder.episodeProgress.setVisibility(View.GONE);
                     }
                 }
 
