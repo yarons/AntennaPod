@@ -20,14 +20,14 @@ import de.danoeh.antennapod.view.PieChartView;
 /**
  * Adapter for the statistics list
  */
-public class StatisticsListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class PlaybackStatisticsListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_FEED = 1;
     private final Context context;
     private DBReader.StatisticsData statisticsData;
     private boolean countAll = true;
 
-    public StatisticsListAdapter(Context context) {
+    public PlaybackStatisticsListAdapter(Context context) {
         this.context = context;
     }
 

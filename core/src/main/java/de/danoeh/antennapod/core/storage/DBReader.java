@@ -881,6 +881,7 @@ public final class DBReader {
             long episodes = 0;
             long episodesStarted = 0;
             long episodesStartedIncludingMarked = 0;
+            long totalDownloadSize = 0;
             List<FeedItem> items = getFeed(feed.getId()).getItems();
             for (FeedItem item : items) {
                 FeedMedia media = item.getMedia();
@@ -905,11 +906,16 @@ public final class DBReader {
                 }
 
                 feedTotalTime += media.getDuration() / 1000;
+
+                if (media.isDownloaded()) {
+                    totalDownloadSize = totalDownloadSize + media.getSize();
+                }
+
                 episodes++;
             }
             feedTime.add(new StatisticsItem(
                     feed, feedTotalTime, feedPlayedTime, feedPlayedTimeCountAll, episodes,
-                    episodesStarted, episodesStartedIncludingMarked));
+                    episodesStarted, episodesStartedIncludingMarked, totalDownloadSize));
             totalTime += feedPlayedTime;
             totalTimeCountAll += feedPlayedTimeCountAll;
         }
@@ -983,9 +989,14 @@ public final class DBReader {
          * All episodes that are marked as played (or have position != 0)
          */
         public final long episodesStartedIncludingMarked;
+        /**
+         * Simply sums up the size of download podcasts
+         */
+        public final long totalDownloadSize;
 
         public StatisticsItem(Feed feed, long time, long timePlayed, long timePlayedCountAll,
-                              long episodes, long episodesStarted, long episodesStartedIncludingMarked) {
+                              long episodes, long episodesStarted, long episodesStartedIncludingMarked,
+                              long totalDownloadSize) {
             this.feed = feed;
             this.time = time;
             this.timePlayed = timePlayed;
@@ -993,6 +1004,7 @@ public final class DBReader {
             this.episodes = episodes;
             this.episodesStarted = episodesStarted;
             this.episodesStartedIncludingMarked = episodesStartedIncludingMarked;
+            this.totalDownloadSize = totalDownloadSize;
         }
     }
 
