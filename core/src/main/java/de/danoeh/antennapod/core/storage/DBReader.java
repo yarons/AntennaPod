@@ -860,12 +860,10 @@ public final class DBReader {
     /**
      * Searches the DB for statistics
      *
-     * @param sortByCountAll If true, the statistic items will be sorted according to the
-     *                       countAll calculation time
      * @return The StatisticsInfo object
      */
     @NonNull
-    public static StatisticsData getStatistics(boolean sortByCountAll) {
+    public static StatisticsData getStatistics() {
         PodDBAdapter adapter = PodDBAdapter.getInstance();
         adapter.open();
 
@@ -920,32 +918,8 @@ public final class DBReader {
             totalTimeCountAll += feedPlayedTimeCountAll;
         }
 
-        if (sortByCountAll) {
-            Collections.sort(feedTime, (item1, item2) ->
-                    compareLong(item1.timePlayedCountAll, item2.timePlayedCountAll));
-        } else {
-            Collections.sort(feedTime, (item1, item2) ->
-                    compareLong(item1.timePlayed, item2.timePlayed));
-        }
-
         adapter.close();
         return new StatisticsData(totalTime, totalTimeCountAll, feedTime);
-    }
-
-    /**
-     * Compares two {@code long} values. Long.compare() is not available before API 19
-     *
-     * @return 0 if long1 = long2, less than 0 if long1 &lt; long2,
-     * and greater than 0 if long1 &gt; long2.
-     */
-    private static int compareLong(long long1, long long2) {
-        if (long1 > long2) {
-            return -1;
-        } else if (long1 < long2) {
-            return 1;
-        } else {
-            return 0;
-        }
     }
 
     public static class StatisticsData {

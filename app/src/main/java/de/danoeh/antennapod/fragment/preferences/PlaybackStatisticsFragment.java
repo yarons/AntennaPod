@@ -27,11 +27,14 @@ import de.danoeh.antennapod.adapter.PlaybackStatisticsListAdapter;
 import de.danoeh.antennapod.core.dialog.ConfirmationDialog;
 import de.danoeh.antennapod.core.storage.DBReader;
 import de.danoeh.antennapod.core.storage.DBWriter;
+import de.danoeh.antennapod.core.util.comparator.CompareCompat;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+
+import java.util.Collections;
 
 /**
  * Displays the 'playback statistics' screen
@@ -167,7 +170,7 @@ public class PlaybackStatisticsFragment extends Fragment {
         if (disposable != null) {
             disposable.dispose();
         }
-        disposable = Observable.fromCallable(() -> DBReader.getStatistics(countAll))
+        disposable = Observable.fromCallable(this::fetchStatistics)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(result -> {
@@ -175,5 +178,17 @@ public class PlaybackStatisticsFragment extends Fragment {
                     progressBar.setVisibility(View.GONE);
                     feedStatisticsList.setVisibility(View.VISIBLE);
                 }, error -> Log.e(TAG, Log.getStackTraceString(error)));
+    }
+
+    private DBReader.StatisticsData fetchStatistics() {
+        DBReader.StatisticsData statisticsData = DBReader.getStatistics();
+        if (countAll) {
+            Collections.sort(statisticsData.feedTime, (item1, item2) ->
+                    CompareCompat.compareLong(item1.timePlayedCountAll, item2.timePlayedCountAll));
+        } else {
+            Collections.sort(statisticsData.feedTime, (item1, item2) ->
+                    CompareCompat.compareLong(item1.timePlayed, item2.timePlayed));
+        }
+        return statisticsData;
     }
 }

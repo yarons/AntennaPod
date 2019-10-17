@@ -16,10 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.adapter.DownloadStatisticsListAdapter;
 import de.danoeh.antennapod.core.storage.DBReader;
+import de.danoeh.antennapod.core.util.comparator.CompareCompat;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+
+import java.util.Collections;
 
 /**
  * Displays the 'download statistics' screen
@@ -68,7 +71,12 @@ public class DownloadStatisticsFragment extends Fragment {
         }
 
         disposable =
-                Observable.fromCallable(() -> DBReader.getStatistics(countAll))
+                Observable.fromCallable(() -> {
+                    DBReader.StatisticsData statisticsData = DBReader.getStatistics();
+                    Collections.sort(statisticsData.feedTime, (item1, item2) ->
+                            CompareCompat.compareLong(item1.totalDownloadSize, item2.totalDownloadSize));
+                    return statisticsData;
+                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(result -> {
