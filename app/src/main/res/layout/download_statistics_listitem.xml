@@ -47,11 +47,22 @@
             android:lines="1"
             android:textColor="?android:attr/textColorTertiary"
             android:textSize="14sp"
+            tools:text="0 MB"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignTop="@id/imgvCover"/>
+    <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/progressBar"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
             android:layout_toEndOf="@+id/imgvCover"
             android:layout_toRightOf="@+id/imgvCover"
             android:layout_marginLeft="16dp"
             android:layout_marginStart="16dp"
-            android:layout_below="@+id/txtvTitle"
-            tools:text="0 MB"/>
+            android:layout_marginTop="4dp"
+            android:layout_below="@+id/txtvTitle"/>
 
 </RelativeLayout>

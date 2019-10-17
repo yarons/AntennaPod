@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,7 +18,6 @@ import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.core.glide.ApGlideSettings;
 import de.danoeh.antennapod.core.storage.DBReader;
 import de.danoeh.antennapod.core.util.Converter;
-import de.danoeh.antennapod.view.PieChartView;
 
 /**
  * Adapter for the statistics list
@@ -27,6 +27,7 @@ public class DownloadStatisticsListAdapter extends RecyclerView.Adapter<Recycler
     private static final int TYPE_FEED = 1;
     private final Context context;
     private DBReader.StatisticsData statisticsData;
+    private long totalDownloadSize = 0;
 
     public DownloadStatisticsListAdapter(Context context) {
         this.context = context;
@@ -63,18 +64,7 @@ public class DownloadStatisticsListAdapter extends RecyclerView.Adapter<Recycler
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder h, int position) {
         if (getItemViewType(position) == TYPE_HEADER) {
             HeaderHolder holder = (HeaderHolder) h;
-            long totalDownloadSize = 0;
-
-            for (DBReader.StatisticsItem item: statisticsData.feedTime) {
-                totalDownloadSize = totalDownloadSize + item.totalDownloadSize;
-            }
             holder.totalTime.setText(Converter.byteToString(totalDownloadSize));
-            float[] dataValues = new float[statisticsData.feedTime.size()];
-            for (int i = 0; i < statisticsData.feedTime.size(); i++) {
-                DBReader.StatisticsItem item = statisticsData.feedTime.get(i);
-                dataValues[i] = item.totalDownloadSize;
-            }
-            holder.pieChart.setData(dataValues);
         } else {
             StatisticsHolder holder = (StatisticsHolder) h;
             DBReader.StatisticsItem statsItem = statisticsData.feedTime.get(position - 1);
@@ -90,22 +80,25 @@ public class DownloadStatisticsListAdapter extends RecyclerView.Adapter<Recycler
 
             holder.title.setText(statsItem.feed.getTitle());
             holder.size.setText(Converter.byteToString(statsItem.totalDownloadSize));
+            holder.progress.setProgress((int) (100 * statsItem.totalDownloadSize / totalDownloadSize));
         }
     }
 
     public void update(DBReader.StatisticsData statistics) {
         this.statisticsData = statistics;
+        totalDownloadSize = 0;
+        for (DBReader.StatisticsItem item: statisticsData.feedTime) {
+            totalDownloadSize += item.totalDownloadSize;
+        }
         notifyDataSetChanged();
     }
 
     static class HeaderHolder extends RecyclerView.ViewHolder {
         TextView totalTime;
-        PieChartView pieChart;
 
         HeaderHolder(View itemView) {
             super(itemView);
             totalTime = itemView.findViewById(R.id.total_time);
-            pieChart = itemView.findViewById(R.id.pie_chart);
         }
     }
 
@@ -113,12 +106,14 @@ public class DownloadStatisticsListAdapter extends RecyclerView.Adapter<Recycler
         ImageView image;
         TextView title;
         TextView size;
+        ProgressBar progress;
 
         StatisticsHolder(View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.imgvCover);
             title = itemView.findViewById(R.id.txtvTitle);
             size = itemView.findViewById(R.id.txtvSize);
+            progress = itemView.findViewById(R.id.progressBar);
         }
     }
 
