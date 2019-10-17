@@ -827,6 +827,9 @@ public class PlaybackService extends MediaBrowserServiceCompat {
 
         @Override
         public void onPlaybackStart(@NonNull Playable playable, int position) {
+            if (taskManager.isSleepTimerActive()) {
+                taskManager.restartSleepTimer();
+            }
             taskManager.startWidgetUpdater();
             if (position != PlaybackServiceMediaPlayer.INVALID_TIME) {
                 playable.setPosition(position);
@@ -838,6 +841,7 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         @Override
         public void onPlaybackPause(Playable playable, int position) {
             taskManager.cancelPositionSaver();
+            cancelPositionObserver();
             saveCurrentPosition(position == PlaybackServiceMediaPlayer.INVALID_TIME || playable == null,
                     playable, position);
             taskManager.cancelWidgetUpdater();
@@ -914,6 +918,7 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         Log.d(TAG, "Playback ended");
         if (stopPlaying) {
             taskManager.cancelPositionSaver();
+            cancelPositionObserver();
             PlaybackPreferences.writeNoMediaPlaying();
             if (!isCasting) {
                 stateManager.stopForeground(true);
@@ -967,7 +972,7 @@ public class PlaybackService extends MediaBrowserServiceCompat {
         }
         FeedMedia media = (FeedMedia) playable;
         FeedItem item = media.getItem();
-        boolean smartMarkAsPlayed = playingNext && media.hasAlmostEnded();
+        boolean smartMarkAsPlayed = media.hasAlmostEnded();
         if (!ended && smartMarkAsPlayed) {
             Log.d(TAG, "smart mark as played");
         }
