@@ -212,6 +212,7 @@ public class DownloadService extends Service {
         }
 
         EventBus.getDefault().postSticky(DownloadEvent.refresh(Collections.emptyList()));
+        cancelNotificationUpdater();
 
         stopForeground(true);
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -220,7 +221,6 @@ public class DownloadService extends Service {
         downloadCompletionThread.interrupt();
         syncExecutor.shutdown();
         schedExecutor.shutdown();
-        cancelNotificationUpdater();
         if (downloadPostFuture != null) {
             downloadPostFuture.cancel(true);
         }

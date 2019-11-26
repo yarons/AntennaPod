@@ -229,7 +229,7 @@ public class DownloadRequester implements DownloadStateProvider {
         for (FeedItem item : items) {
             try {
                 DownloadRequest request = createRequest(item.getMedia());
-                if (request != null) {
+                if (request != null && !downloads.containsKey(request.getSource())) {
                     requests.add(request);
                 }
             } catch (DownloadRequestException e) {
