@@ -5,7 +5,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -54,12 +59,14 @@ import org.greenrobot.eventbus.ThreadMode;
 /**
  * Fragment for displaying feed subscriptions
  */
-public class SubscriptionFragment extends Fragment {
+public class SubscriptionFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     public static final String TAG = "SubscriptionFragment";
     private static final String PREFS = "SubscriptionFragment";
     private static final String PREF_NUM_COLUMNS = "columns";
 
+    private Toolbar toolbar;
+    private ActionBarDrawerToggle actionBarDrawerToggle;
     private GridView subscriptionGridLayout;
     private DBReader.NavDrawerData navDrawerData;
     private SubscriptionsAdapter subscriptionAdapter;
@@ -76,38 +83,48 @@ public class SubscriptionFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        setHasOptionsMenu(true);
-
         prefs = requireActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_subscriptions, container, false);
         subscriptionGridLayout = root.findViewById(R.id.subscriptions_grid);
         subscriptionGridLayout.setNumColumns(prefs.getInt(PREF_NUM_COLUMNS, 3));
         registerForContextMenu(subscriptionGridLayout);
         subscriptionAddButton = root.findViewById(R.id.subscriptions_add);
+
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(this);
+        DrawerLayout drawerLayout = ((MainActivity) getActivity()).getDrawerLayout();
+        actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
+                drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(actionBarDrawerToggle);
+        toolbar.inflateMenu(R.menu.subscriptions);
+        invalidateOptionsMenu();
+
         return root;
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.subscriptions, menu);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        actionBarDrawerToggle.syncState();
+    }
 
+    private void invalidateOptionsMenu() {
         int columns = prefs.getInt(PREF_NUM_COLUMNS, 3);
-        menu.findItem(R.id.subscription_num_columns_2).setChecked(columns == 2);
-        menu.findItem(R.id.subscription_num_columns_3).setChecked(columns == 3);
-        menu.findItem(R.id.subscription_num_columns_4).setChecked(columns == 4);
-        menu.findItem(R.id.subscription_num_columns_5).setChecked(columns == 5);
+        toolbar.getMenu().findItem(R.id.subscription_num_columns_2).setChecked(columns == 2);
+        toolbar.getMenu().findItem(R.id.subscription_num_columns_3).setChecked(columns == 3);
+        toolbar.getMenu().findItem(R.id.subscription_num_columns_4).setChecked(columns == 4);
+        toolbar.getMenu().findItem(R.id.subscription_num_columns_5).setChecked(columns == 5);
 
-        isUpdatingFeeds = MenuItemUtils.updateRefreshMenuItem(menu, R.id.refresh_item, updateRefreshMenuItemChecker);
+        isUpdatingFeeds = MenuItemUtils.updateRefreshMenuItem(toolbar.getMenu(),
+                R.id.refresh_item, updateRefreshMenuItemChecker);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onMenuItemClick(MenuItem item) {
         if (super.onOptionsItemSelected(item)) {
             return true;
         }
@@ -135,7 +152,7 @@ public class SubscriptionFragment extends Fragment {
     private void setColumnNumber(int columns) {
         subscriptionGridLayout.setNumColumns(columns);
         prefs.edit().putInt(PREF_NUM_COLUMNS, columns).apply();
-        getActivity().invalidateOptionsMenu();
+        invalidateOptionsMenu();
     }
 
     private void setupEmptyView() {
@@ -318,7 +335,7 @@ public class SubscriptionFragment extends Fragment {
     public void onEventMainThread(DownloadEvent event) {
         Log.d(TAG, "onEventMainThread() called with: " + "event = [" + event + "]");
         if (event.hasChangedFeedUpdateStatus(isUpdatingFeeds)) {
-            getActivity().invalidateOptionsMenu();
+            invalidateOptionsMenu();
         }
     }
 
