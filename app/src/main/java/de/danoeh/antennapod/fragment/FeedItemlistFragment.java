@@ -30,6 +30,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.joanzapata.iconify.Iconify;
 import com.joanzapata.iconify.widget.IconTextView;
 import de.danoeh.antennapod.R;
@@ -59,12 +61,14 @@ import de.danoeh.antennapod.core.storage.DownloadRequester;
 import de.danoeh.antennapod.core.util.FeedItemPermutors;
 import de.danoeh.antennapod.core.util.FeedItemUtil;
 import de.danoeh.antennapod.core.util.Optional;
+import de.danoeh.antennapod.core.util.ThemeUtils;
 import de.danoeh.antennapod.core.util.gui.MoreContentListFooterUtil;
 import de.danoeh.antennapod.dialog.EpisodesApplyActionFragment;
 import de.danoeh.antennapod.dialog.RenameFeedDialog;
 import de.danoeh.antennapod.menuhandler.FeedItemMenuHandler;
 import de.danoeh.antennapod.menuhandler.FeedMenuHandler;
 import de.danoeh.antennapod.menuhandler.MenuItemUtils;
+import de.danoeh.antennapod.view.ToolbarIconTintManager;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -97,6 +101,9 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
     private ImageView imgvBackground;
     private ImageView imgvCover;
     private TextView txtvInformation;
+    private TextView txtvAuthor;
+    private ImageButton butShowInfo;
+    private ImageButton butShowSettings;
 
     private long feedID;
     private Feed feed;
@@ -148,6 +155,31 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
                 drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
         drawerLayout.addDrawerListener(actionBarDrawerToggle);
+
+        txtvTitle = root.findViewById(R.id.txtvTitle);
+        txtvAuthor = root.findViewById(R.id.txtvAuthor);
+        imgvBackground = root.findViewById(R.id.imgvBackground);
+        imgvCover = root.findViewById(R.id.imgvCover);
+        butShowInfo = root.findViewById(R.id.butShowInfo);
+        butShowSettings = root.findViewById(R.id.butShowSettings);
+        txtvInformation = root.findViewById(R.id.txtvInformation);
+        txtvFailure = root.findViewById(R.id.txtvFailure);
+        AppBarLayout appBar = root.findViewById(R.id.appBar);
+        CollapsingToolbarLayout collapsingToolbar = root.findViewById(R.id.collapsing_toolbar);
+
+        appBar.addOnOffsetChangedListener(new ToolbarIconTintManager(getContext(), toolbar, collapsingToolbar) {
+            @Override
+            protected void doTint(Context themedContext) {
+                toolbar.getMenu().findItem(R.id.sort_items)
+                        .setIcon(ThemeUtils.getDrawableFromAttr(themedContext, R.attr.ic_sort));
+                toolbar.getMenu().findItem(R.id.filter_items)
+                        .setIcon(ThemeUtils.getDrawableFromAttr(themedContext, R.attr.ic_filter));
+                toolbar.getMenu().findItem(R.id.refresh_item)
+                        .setIcon(ThemeUtils.getDrawableFromAttr(themedContext, R.attr.navigation_refresh));
+                toolbar.getMenu().findItem(R.id.action_search)
+                        .setIcon(ThemeUtils.getDrawableFromAttr(themedContext, R.attr.action_search));
+            }
+        });
 
         EventBus.getDefault().register(this);
         loadItems();
@@ -286,9 +318,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         super.onCreateContextMenu(menu, v, menuInfo);
         AdapterView.AdapterContextMenuInfo adapterInfo = (AdapterView.AdapterContextMenuInfo) menuInfo;
 
-        // because of addHeaderView(), positions are increased by 1!
-        FeedItem item = (FeedItem) itemAccess.getItem(adapterInfo.position - 1);
-
+        FeedItem item = (FeedItem) itemAccess.getItem(adapterInfo.position);
         MenuInflater inflater = getActivity().getMenuInflater();
         inflater.inflate(R.menu.feeditemlist_context, menu);
 
@@ -306,8 +336,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         if (menuInfo == null) {
             menuInfo = lastMenuInfo;
         }
-        // because of addHeaderView(), positions are increased by 1!
-        FeedItem selectedItem = feed.getItemAtIndex(menuInfo.position - 1);
+        FeedItem selectedItem = feed.getItemAtIndex(menuInfo.position);
 
         if (selectedItem == null) {
             Log.i(TAG, "Selected item at position " + menuInfo.position + " was null, ignoring selection");
@@ -322,7 +351,6 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         if (adapter == null) {
             return;
         }
-        position -= listView.getHeaderViewsCount();
         MainActivity activity = (MainActivity) getActivity();
         long[] ids = FeedItemUtil.getIds(feed.getItems());
         activity.loadChildFragment(ItemPagerFragment.newInstance(ids, position));
@@ -371,7 +399,6 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
     }
 
     private void updateUi() {
-        refreshHeaderView();
         loadItems();
         updateProgressBarVisibility();
     }
@@ -389,6 +416,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onFeedListChanged(FeedListUpdateEvent event) {
         if (event.contains(feed)) {
+            refreshHeaderView();
             updateUi();
         }
     }
@@ -400,7 +428,6 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         if (listFooter != null) {
             listFooter.setLoadingState(DownloadRequester.getInstance().isDownloadingFeeds());
         }
-
     }
 
     private void displayList() {
@@ -410,12 +437,10 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
         }
         if (adapter == null) {
             listView.setAdapter(null);
-            setupHeaderView();
             setupFooterView();
             adapter = new FeedItemlistAdapter((MainActivity) getActivity(), itemAccess, false, true);
             listView.setAdapter(adapter);
         }
-        refreshHeaderView();
         listView.setVisibility(View.VISIBLE);
         progressBar.setVisibility(View.GONE);
         adapter.notifyDataSetChanged();
@@ -439,6 +464,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
             txtvFailure.setVisibility(View.GONE);
         }
         txtvTitle.setText(feed.getTitle());
+        txtvAuthor.setText(feed.getAuthor());
         if (feed.getItemFilter() != null) {
             FeedItemFilter filter = feed.getItemFilter();
             if (filter.getValues().length > 0) {
@@ -462,28 +488,12 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
             Log.e(TAG, "Unable to setup listview: recyclerView = null or feed = null");
             return;
         }
-        LayoutInflater inflater = (LayoutInflater)
-                getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View header = inflater.inflate(R.layout.feeditemlist_header, listView, false);
-        listView.addHeaderView(header);
-
-        txtvTitle = header.findViewById(R.id.txtvTitle);
-        TextView txtvAuthor = header.findViewById(R.id.txtvAuthor);
-        imgvBackground = header.findViewById(R.id.imgvBackground);
-        imgvCover = header.findViewById(R.id.imgvCover);
-        ImageButton butShowInfo = header.findViewById(R.id.butShowInfo);
-        ImageButton butShowSettings = header.findViewById(R.id.butShowSettings);
-        txtvInformation = header.findViewById(R.id.txtvInformation);
-        txtvFailure = header.findViewById(R.id.txtvFailure);
-
-        txtvTitle.setText(feed.getTitle());
-        txtvAuthor.setText(feed.getAuthor());
+        if (headerCreated) {
+            return;
+        }
 
         // https://github.com/bumptech/glide/issues/529
-        imgvBackground.setColorFilter(new LightingColorFilter(0xff828282, 0x000000));
-
-        loadFeedImage();
-
+        imgvBackground.setColorFilter(new LightingColorFilter(0xff666666, 0x000000));
         butShowInfo.setOnClickListener(v -> showFeedInfo());
         imgvCover.setOnClickListener(v -> showFeedInfo());
         butShowSettings.setOnClickListener(v -> {
@@ -493,6 +503,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
             }
         });
         headerCreated = true;
+        refreshHeaderView();
     }
 
     private void showFeedInfo() {
@@ -576,6 +587,7 @@ public class FeedItemlistFragment extends Fragment implements AdapterView.OnItem
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(result -> {
                     feed = result.orElse(null);
+                    setupHeaderView();
                     displayList();
                 }, error -> Log.e(TAG, Log.getStackTraceString(error)));
     }
