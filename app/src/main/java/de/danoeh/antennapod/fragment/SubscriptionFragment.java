@@ -177,10 +177,6 @@ public class SubscriptionFragment extends Fragment implements Toolbar.OnMenuItem
                 ((MainActivity) getActivity()).loadChildFragment(new AddFeedFragment());
             }
         });
-
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).getSupportActionBar().setTitle(R.string.subscriptions_label);
-        }
     }
 
     @Override
