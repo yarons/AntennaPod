@@ -4,21 +4,26 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
-import com.google.android.material.tabs.TabLayout;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.viewpager.widget.ViewPager;
+import com.google.android.material.tabs.TabLayout;
 import de.danoeh.antennapod.R;
+import de.danoeh.antennapod.activity.MainActivity;
+import de.danoeh.antennapod.adapter.MenuAwareFragmentPagerAdapter;
 
 /**
  * Shows the CompletedDownloadsFragment and the RunningDownloadsFragment
  */
-public class DownloadsFragment extends Fragment {
+public class DownloadsFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     public static final String TAG = "DownloadsFragment";
 
@@ -30,28 +35,38 @@ public class DownloadsFragment extends Fragment {
 
     private static final String PREF_LAST_TAB_POSITION = "tab_position";
 
+    private ActionBarDrawerToggle actionBarDrawerToggle;
     private ViewPager viewPager;
     private TabLayout tabLayout;
+    private DownloadsPagerAdapter pagerAdapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View root = inflater.inflate(R.layout.pager_fragment, container, false);
 
+        Toolbar toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setTitle(R.string.downloads_label);
+        toolbar.setOnMenuItemClickListener(this);
+        DrawerLayout drawerLayout = ((MainActivity) getActivity()).getDrawerLayout();
+        actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
+                drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(actionBarDrawerToggle);
+
         viewPager = root.findViewById(R.id.viewpager);
-        DownloadsPagerAdapter pagerAdapter = new DownloadsPagerAdapter(getChildFragmentManager(), getResources());
+        pagerAdapter = new DownloadsPagerAdapter(getChildFragmentManager(), getContext(), toolbar.getMenu());
         viewPager.setAdapter(pagerAdapter);
 
         // Give the TabLayout the ViewPager
         tabLayout = root.findViewById(R.id.sliding_tabs);
         tabLayout.setupWithViewPager(viewPager);
-
         return root;
     }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        actionBarDrawerToggle.syncState();
         if (getArguments() != null) {
             int tab = getArguments().getInt(ARG_SELECTED_TAB);
             viewPager.setCurrentItem(tab, false);
@@ -78,13 +93,15 @@ public class DownloadsFragment extends Fragment {
         viewPager.setCurrentItem(lastPosition);
     }
 
-    public static class DownloadsPagerAdapter extends FragmentPagerAdapter {
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        return pagerAdapter.onOptionsItemSelected(item);
+    }
 
-        final Resources resources;
+    public class DownloadsPagerAdapter extends MenuAwareFragmentPagerAdapter {
 
-        public DownloadsPagerAdapter(FragmentManager fm, Resources resources) {
-            super(fm);
-            this.resources = resources;
+        public DownloadsPagerAdapter(FragmentManager fm, Context context, Menu menu) {
+            super(fm, context, menu);
         }
 
         @Override
@@ -110,11 +127,11 @@ public class DownloadsFragment extends Fragment {
         public CharSequence getPageTitle(int position) {
             switch (position) {
                 case POS_RUNNING:
-                    return resources.getString(R.string.downloads_running_label);
+                    return getString(R.string.downloads_running_label);
                 case POS_COMPLETED:
-                    return resources.getString(R.string.downloads_completed_label);
+                    return getString(R.string.downloads_completed_label);
                 case POS_LOG:
-                    return resources.getString(R.string.downloads_log_label);
+                    return getString(R.string.downloads_log_label);
                 default:
                     return super.getPageTitle(position);
             }

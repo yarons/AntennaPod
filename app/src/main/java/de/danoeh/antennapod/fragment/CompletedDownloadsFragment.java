@@ -90,14 +90,13 @@ public class CompletedDownloadsFragment extends ListFragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.downloads_completed, menu);
-        menu.findItem(R.id.episode_actions).setVisible(items.size() > 0);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.episode_actions) {
-            ((MainActivity) requireActivity())
-                    .loadChildFragment(EpisodesApplyActionFragment.newInstance(items, ACTION_DELETE | ACTION_ADD_TO_QUEUE));
+            ((MainActivity) requireActivity()).loadChildFragment(
+                    EpisodesApplyActionFragment.newInstance(items, ACTION_DELETE | ACTION_ADD_TO_QUEUE));
             return true;
         }
         return false;
@@ -165,6 +164,5 @@ public class CompletedDownloadsFragment extends ListFragment {
     private void onItemsLoaded() {
         setListShown(true);
         listAdapter.notifyDataSetChanged();
-        requireActivity().invalidateOptionsMenu();
     }
 }

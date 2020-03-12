@@ -89,7 +89,6 @@ public class DownloadLogFragment extends ListFragment {
     private void onFragmentLoaded() {
         setListShown(true);
         adapter.notifyDataSetChanged();
-        getActivity().supportInvalidateOptionsMenu();
     }
 
     @Override
@@ -147,24 +146,8 @@ public class DownloadLogFragment extends ListFragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (!isAdded()) {
-            return;
-        }
         super.onCreateOptionsMenu(menu, inflater);
-        MenuItem clearHistory = menu.add(Menu.NONE, R.id.clear_history_item, Menu.CATEGORY_CONTAINER, R.string.clear_history_label);
-        MenuItemCompat.setShowAsAction(clearHistory, MenuItemCompat.SHOW_AS_ACTION_IF_ROOM);
-        TypedArray drawables = getActivity().obtainStyledAttributes(new int[]{R.attr.content_discard});
-        clearHistory.setIcon(drawables.getDrawable(0));
-        drawables.recycle();
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-        MenuItem menuItem = menu.findItem(R.id.clear_history_item);
-        if (menuItem != null) {
-            menuItem.setVisible(!downloadLog.isEmpty());
-        }
+        inflater.inflate(R.menu.downloads_log, menu);
     }
 
     @Override
