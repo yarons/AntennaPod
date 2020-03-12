@@ -6,6 +6,11 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
@@ -36,6 +41,8 @@ public class AddFeedFragment extends Fragment {
 
     private EditText combinedFeedSearchBox;
     private MainActivity activity;
+    private Toolbar toolbar;
+    private ActionBarDrawerToggle actionBarDrawerToggle;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,7 +50,11 @@ public class AddFeedFragment extends Fragment {
         View root = inflater.inflate(R.layout.addfeed, container, false);
 
         activity = (MainActivity) getActivity();
-        activity.getSupportActionBar().setTitle(R.string.add_feed_label);
+        toolbar = root.findViewById(R.id.toolbar);
+        DrawerLayout drawerLayout = activity.getDrawerLayout();
+        actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
+                drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(actionBarDrawerToggle);
 
         setupAdvancedSearchButtons(root);
         setupSeachBox(root);
@@ -61,6 +72,12 @@ public class AddFeedFragment extends Fragment {
         });
         root.findViewById(R.id.search_icon).setOnClickListener(view -> performSearch());
         return root;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        actionBarDrawerToggle.syncState();
     }
 
     private void setupSeachBox(View root) {
@@ -131,17 +148,6 @@ public class AddFeedFragment extends Fragment {
         CombinedSearchFragment fragment = new CombinedSearchFragment();
         fragment.setArguments(bundle);
         activity.loadChildFragment(fragment);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setRetainInstance(true);
-
-        // So, we certainly *don't* have an options menu,
-        // but unless we say we do, old options menus sometimes
-        // persist.  mfietz thinks this causes the ActionBar to be invalidated
-        setHasOptionsMenu(true);
     }
 
     @Override
