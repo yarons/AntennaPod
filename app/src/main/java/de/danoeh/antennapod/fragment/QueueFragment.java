@@ -6,8 +6,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,9 +13,14 @@ import android.widget.CheckBox;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -71,11 +74,13 @@ import static de.danoeh.antennapod.dialog.EpisodesApplyActionFragment.ACTION_REM
 import static de.danoeh.antennapod.dialog.EpisodesApplyActionFragment.ACTION_DOWNLOAD;
 
 /**
- * Shows all items in the queue
+ * Shows all items in the queue.
  */
-public class QueueFragment extends Fragment {
+public class QueueFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
     public static final String TAG = "QueueFragment";
 
+    private Toolbar toolbar;
+    private ActionBarDrawerToggle actionBarDrawerToggle;
     private TextView infoBar;
     private RecyclerView recyclerView;
     private QueueRecyclerAdapter recyclerAdapter;
@@ -101,7 +106,6 @@ public class QueueFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        setHasOptionsMenu(true);
         prefs = getActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
@@ -195,7 +199,7 @@ public class QueueFragment extends Fragment {
         Log.d(TAG, "onEventMainThread() called with: " + "event = [" + event + "]");
         DownloaderUpdate update = event.update;
         if (event.hasChangedFeedUpdateStatus(isUpdatingFeeds)) {
-            getActivity().invalidateOptionsMenu();
+            invalidateOptionsMenu();
         }
         if (recyclerAdapter != null && update.mediaIds.length > 0) {
             for (long mediaId : update.mediaIds) {
@@ -225,7 +229,7 @@ public class QueueFragment extends Fragment {
     public void onPlayerStatusChanged(PlayerStatusEvent event) {
         loadItems(false);
         if (isUpdatingFeeds != updateRefreshMenuItemChecker.isRefreshing()) {
-            getActivity().supportInvalidateOptionsMenu();
+            invalidateOptionsMenu();
         }
     }
 
@@ -234,7 +238,7 @@ public class QueueFragment extends Fragment {
         // Sent when playback position is reset
         loadItems(false);
         if (isUpdatingFeeds != updateRefreshMenuItemChecker.isRefreshing()) {
-            getActivity().supportInvalidateOptionsMenu();
+            invalidateOptionsMenu();
         }
     }
 
@@ -275,53 +279,45 @@ public class QueueFragment extends Fragment {
     private final MenuItemUtils.UpdateRefreshMenuItemChecker updateRefreshMenuItemChecker =
             () -> DownloadService.isRunning && DownloadRequester.getInstance().isDownloadingFeeds();
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if(!isAdded()) {
-            return;
-        }
-        super.onCreateOptionsMenu(menu, inflater);
-        if (queue != null) {
-            inflater.inflate(R.menu.queue, menu);
+    public void invalidateOptionsMenu() {
+        MenuItem searchItem = toolbar.getMenu().findItem(R.id.action_search);
+        final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
+        sv.setQueryHint(getString(R.string.search_label));
+        sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                sv.clearFocus();
+                ((MainActivity) getActivity()).loadChildFragment(SearchFragment.newInstance(s));
+                return true;
+            }
 
-            MenuItem searchItem = menu.findItem(R.id.action_search);
-            final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
-            sv.setQueryHint(getString(R.string.search_label));
-            sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-                @Override
-                public boolean onQueryTextSubmit(String s) {
-                    sv.clearFocus();
-                    ((MainActivity) getActivity()).loadChildFragment(SearchFragment.newInstance(s));
-                    return true;
-                }
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return false;
+            }
+        });
 
-                @Override
-                public boolean onQueryTextChange(String s) {
-                    return false;
-                }
-            });
+        MenuItemUtils.refreshLockItem(getActivity(), toolbar.getMenu());
 
-            MenuItemUtils.refreshLockItem(getActivity(), menu);
+        // Show Lock Item only if queue is sorted manually
+        boolean keepSorted = UserPreferences.isQueueKeepSorted();
+        MenuItem lockItem = toolbar.getMenu().findItem(R.id.queue_lock);
+        lockItem.setVisible(!keepSorted);
 
-            // Show Lock Item only if queue is sorted manually
-            boolean keepSorted = UserPreferences.isQueueKeepSorted();
-            MenuItem lockItem = menu.findItem(R.id.queue_lock);
-            lockItem.setVisible(!keepSorted);
+        // Random sort is not supported in keep sorted mode
+        MenuItem sortRandomItem = toolbar.getMenu().findItem(R.id.queue_sort_random);
+        sortRandomItem.setVisible(!keepSorted);
 
-            // Random sort is not supported in keep sorted mode
-            MenuItem sortRandomItem = menu.findItem(R.id.queue_sort_random);
-            sortRandomItem.setVisible(!keepSorted);
+        // Set keep sorted checkbox
+        MenuItem keepSortedItem = toolbar.getMenu().findItem(R.id.queue_keep_sorted);
+        keepSortedItem.setChecked(keepSorted);
 
-            // Set keep sorted checkbox
-            MenuItem keepSortedItem = menu.findItem(R.id.queue_keep_sorted);
-            keepSortedItem.setChecked(keepSorted);
-
-            isUpdatingFeeds = MenuItemUtils.updateRefreshMenuItem(menu, R.id.refresh_item, updateRefreshMenuItemChecker);
-        }
+        isUpdatingFeeds = MenuItemUtils.updateRefreshMenuItem(toolbar.getMenu(),
+                R.id.refresh_item, updateRefreshMenuItemChecker);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onMenuItemClick(MenuItem item) {
         if (!super.onOptionsItemSelected(item)) {
             switch (item.getItemId()) {
                 case R.id.queue_lock:
@@ -395,7 +391,7 @@ public class QueueFragment extends Fragment {
                     } else if (recyclerAdapter != null) {
                         recyclerAdapter.setLocked(UserPreferences.isQueueLocked());
                     }
-                    getActivity().invalidateOptionsMenu();
+                    invalidateOptionsMenu();
                     return true;
                 default:
                     return false;
@@ -434,7 +430,7 @@ public class QueueFragment extends Fragment {
 
     private void setQueueLocked(boolean locked) {
         UserPreferences.setQueueLocked(locked);
-        getActivity().supportInvalidateOptionsMenu();
+        invalidateOptionsMenu();
         if (recyclerAdapter != null) {
             recyclerAdapter.setLocked(locked);
         }
@@ -491,13 +487,27 @@ public class QueueFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        actionBarDrawerToggle.syncState();
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(R.string.queue_label);
 
         View root = inflater.inflate(R.layout.queue_fragment, container, false);
+
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(this);
+        toolbar.inflateMenu(R.menu.queue);
+        DrawerLayout drawerLayout = ((MainActivity) getActivity()).getDrawerLayout();
+        actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
+                drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(actionBarDrawerToggle);
+        invalidateOptionsMenu();
+
         infoBar = root.findViewById(R.id.info_bar);
         recyclerView = root.findViewById(R.id.recyclerView);
         RecyclerView.ItemAnimator animator = recyclerView.getItemAnimator();
@@ -648,8 +658,7 @@ public class QueueFragment extends Fragment {
 
         // we need to refresh the options menu because it sometimes
         // needs data that may have just been loaded.
-        getActivity().supportInvalidateOptionsMenu();
-
+        invalidateOptionsMenu();
         refreshInfoBar();
     }
 

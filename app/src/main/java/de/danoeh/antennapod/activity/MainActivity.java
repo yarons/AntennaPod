@@ -835,4 +835,8 @@ public class MainActivity extends CastEnabledActivity implements NavDrawerActivi
         super.onNewIntent(intent);
         setIntent(intent);
     }
+
+    public DrawerLayout getDrawerLayout() {
+        return drawerLayout;
+    }
 }
