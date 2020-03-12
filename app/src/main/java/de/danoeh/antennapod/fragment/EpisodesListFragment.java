@@ -80,9 +80,6 @@ public abstract class EpisodesListFragment extends Fragment {
 
     @NonNull
     List<FeedItem> episodes = new ArrayList<>();
-
-    private volatile boolean isUpdatingFeeds;
-    private boolean isMenuVisible = true;
     protected Disposable disposable;
     private LinearLayoutManager layoutManager;
     protected TextView txtvInformation;
@@ -156,21 +153,12 @@ public abstract class EpisodesListFragment extends Fragment {
             () -> DownloadService.isRunning && DownloadRequester.getInstance().isDownloadingFeeds();
 
     @Override
-    public void setMenuVisibility(final boolean visible) {
-        super.setMenuVisibility(visible);
-        isMenuVisible = visible;
-    }
-
-    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (!isAdded()) {
-            return;
-        }
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.episodes, menu);
 
         MenuItem searchItem = menu.findItem(R.id.action_search);
-        final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
+        final SearchView sv = (SearchView) searchItem.getActionView();
         sv.setQueryHint(getString(R.string.search_label));
         sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -185,7 +173,7 @@ public abstract class EpisodesListFragment extends Fragment {
                 return false;
             }
         });
-        isUpdatingFeeds = MenuItemUtils.updateRefreshMenuItem(menu, R.id.refresh_item, updateRefreshMenuItemChecker);
+        MenuItemUtils.updateRefreshMenuItem(menu, R.id.refresh_item, updateRefreshMenuItemChecker);
     }
 
     @Override
@@ -349,11 +337,7 @@ public abstract class EpisodesListFragment extends Fragment {
         } else {
             listAdapter.updateItems(episodes);
         }
-
         restoreScrollPosition();
-        if (isMenuVisible && isUpdatingFeeds != updateRefreshMenuItemChecker.isRefreshing()) {
-            requireActivity().invalidateOptionsMenu();
-        }
     }
 
     /**
@@ -407,9 +391,6 @@ public abstract class EpisodesListFragment extends Fragment {
     public void onEventMainThread(DownloadEvent event) {
         Log.d(TAG, "onEventMainThread() called with: " + "event = [" + event + "]");
         DownloaderUpdate update = event.update;
-        if (isMenuVisible && event.hasChangedFeedUpdateStatus(isUpdatingFeeds)) {
-            requireActivity().invalidateOptionsMenu();
-        }
         if (update.mediaIds.length > 0) {
             for (long mediaId : update.mediaIds) {
                 int pos = FeedItemUtil.indexOfItemWithMediaId(episodes, mediaId);
@@ -420,26 +401,19 @@ public abstract class EpisodesListFragment extends Fragment {
         }
     }
 
-    private void updateUi() {
-        loadItems();
-        if (isMenuVisible && isUpdatingFeeds != updateRefreshMenuItemChecker.isRefreshing()) {
-            requireActivity().invalidateOptionsMenu();
-        }
-    }
-
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onPlayerStatusChanged(PlayerStatusEvent event) {
-        updateUi();
+        loadItems();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onUnreadItemsChanged(UnreadItemsUpdateEvent event) {
-        updateUi();
+        loadItems();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onFeedListChanged(FeedListUpdateEvent event) {
-        updateUi();
+        loadItems();
     }
 
     void loadItems() {

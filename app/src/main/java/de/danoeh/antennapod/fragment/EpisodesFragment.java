@@ -2,22 +2,29 @@ package de.danoeh.antennapod.fragment;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import com.google.android.material.tabs.TabLayout;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.viewpager.widget.ViewPager;
+import com.google.android.material.tabs.TabLayout;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.activity.MainActivity;
+import de.danoeh.antennapod.adapter.MenuAwareFragmentPagerAdapter;
+import de.danoeh.antennapod.core.event.DownloadEvent;
+import de.danoeh.antennapod.core.storage.DownloadRequester;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
-public class EpisodesFragment extends Fragment {
+public class EpisodesFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     public static final String TAG = "EpisodesFragment";
     private static final String PREF_LAST_TAB_POSITION = "tab_position";
@@ -27,9 +34,12 @@ public class EpisodesFragment extends Fragment {
     private static final int POS_FAV_EPISODES = 2;
     private static final int TOTAL_COUNT = 3;
 
-
+    private Toolbar toolbar;
+    private ActionBarDrawerToggle actionBarDrawerToggle;
     private TabLayout tabLayout;
     private ViewPager viewPager;
+    private EpisodesPagerAdapter pagerAdapter;
+    private boolean isUpdatingFeeds = false;
 
     //Mandatory Constructor
     public EpisodesFragment() {
@@ -40,21 +50,34 @@ public class EpisodesFragment extends Fragment {
         setRetainInstance(true);
     }
 
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        setHasOptionsMenu(true);
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(R.string.episodes_label);
-
         View rootView = inflater.inflate(R.layout.pager_fragment, container, false);
+
+        toolbar = rootView.findViewById(R.id.toolbar);
+        toolbar.setTitle(R.string.episodes_label);
+        toolbar.setOnMenuItemClickListener(this);
+        DrawerLayout drawerLayout = ((MainActivity) getActivity()).getDrawerLayout();
+        actionBarDrawerToggle = new ActionBarDrawerToggle(getActivity(),
+                drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(actionBarDrawerToggle);
+
         viewPager = rootView.findViewById(R.id.viewpager);
-        viewPager.setAdapter(new EpisodesPagerAdapter());
+        pagerAdapter = new EpisodesPagerAdapter();
+        viewPager.setAdapter(pagerAdapter);
 
         // Give the TabLayout the ViewPager
         tabLayout = rootView.findViewById(R.id.sliding_tabs);
         tabLayout.setupWithViewPager(viewPager);
 
         return rootView;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        actionBarDrawerToggle.syncState();
     }
 
     @Override
@@ -75,12 +98,32 @@ public class EpisodesFragment extends Fragment {
         SharedPreferences prefs = getActivity().getSharedPreferences(TAG, Context.MODE_PRIVATE);
         int lastPosition = prefs.getInt(PREF_LAST_TAB_POSITION, 0);
         viewPager.setCurrentItem(lastPosition);
+        EventBus.getDefault().register(this);
     }
 
-    public class EpisodesPagerAdapter extends FragmentPagerAdapter {
+    @Override
+    public void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
+    }
+
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        return pagerAdapter.onOptionsItemSelected(item);
+    }
+
+    @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
+    public void onEventMainThread(DownloadEvent event) {
+        if (event.hasChangedFeedUpdateStatus(isUpdatingFeeds)) {
+            isUpdatingFeeds = DownloadRequester.getInstance().isDownloadingFeeds();
+            pagerAdapter.invalidateMenu();
+        }
+    }
+
+    public class EpisodesPagerAdapter extends MenuAwareFragmentPagerAdapter {
 
         public EpisodesPagerAdapter() {
-            super(getChildFragmentManager());
+            super(getChildFragmentManager(), getContext(), toolbar.getMenu());
         }
 
         @Override
