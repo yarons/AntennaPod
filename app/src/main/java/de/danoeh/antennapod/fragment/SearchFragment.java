@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import de.danoeh.antennapod.R;
@@ -82,7 +83,6 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        setHasOptionsMenu(true);
     }
 
     @Override
@@ -103,14 +103,38 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(R.string.search_label);
-
         View layout = inflater.inflate(R.layout.search_fragment, container, false);
         ListView listView = layout.findViewById(R.id.listview);
         progressBar = layout.findViewById(R.id.progressBar);
         searchAdapter = new FeedItemlistAdapter((MainActivity) getActivity(), itemAccess, true, true);
         listView.setAdapter(searchAdapter);
         listView.setOnItemClickListener(this);
+
+        Toolbar toolbar = layout.findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
+        
+        MenuItem searchItem = toolbar.getMenu().add(Menu.NONE, R.id.search_item, Menu.NONE, R.string.search_label);
+        searchItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        final SearchView sv = new SearchView(getContext());
+        sv.setQueryHint(getString(R.string.search_label));
+        sv.setQuery(getArguments().getString(ARG_QUERY), false);
+        sv.setIconifiedByDefault(false);
+        sv.setMaxWidth(Integer.MAX_VALUE);
+        sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                sv.clearFocus();
+                getArguments().putString(ARG_QUERY, s);
+                search();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return false;
+            }
+        });
+        searchItem.setActionView(sv);
 
         emptyViewHandler = new EmptyViewHandler(getContext());
         emptyViewHandler.attachToListView(listView);
@@ -135,31 +159,6 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
             FeedItem item = (FeedItem) comp;
             ((MainActivity) getActivity()).loadChildFragment(ItemPagerFragment.newInstance(item.getId()));
         }
-    }
-
-    @Override
-    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        MenuItem item = menu.add(Menu.NONE, R.id.search_item, Menu.NONE, R.string.search_label);
-        MenuItemCompat.setShowAsAction(item, MenuItemCompat.SHOW_AS_ACTION_IF_ROOM);
-        final SearchView sv = new SearchView(getActivity());
-        sv.setQueryHint(getString(R.string.search_label));
-        sv.setQuery(getArguments().getString(ARG_QUERY), false);
-        sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String s) {
-                sv.clearFocus();
-                getArguments().putString(ARG_QUERY, s);
-                search();
-                return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String s) {
-                return false;
-            }
-        });
-        MenuItemCompat.setActionView(item, sv);
     }
 
     @Subscribe
