@@ -2,13 +2,12 @@ package de.danoeh.antennapod.fragment;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentStatePagerAdapter;
@@ -32,7 +31,7 @@ import org.greenrobot.eventbus.ThreadMode;
 /**
  * Displays information about a list of FeedItems.
  */
-public class ItemPagerFragment extends Fragment {
+public class ItemPagerFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
     private static final String ARG_FEEDITEMS = "feeditems";
     private static final String ARG_FEEDITEM_POS = "feeditem_pos";
 
@@ -65,12 +64,7 @@ public class ItemPagerFragment extends Fragment {
     private long[] feedItems;
     private FeedItem item;
     private Disposable disposable;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
+    private Toolbar toolbar;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -80,6 +74,11 @@ public class ItemPagerFragment extends Fragment {
 
         feedItems = getArguments().getLongArray(ARG_FEEDITEMS);
         int feedItemPos = getArguments().getInt(ARG_FEEDITEM_POS);
+
+        toolbar = layout.findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(this);
+        toolbar.inflateMenu(R.menu.feeditem_options);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
 
         ViewPager pager = layout.findViewById(R.id.pager);
         // FragmentStatePagerAdapter documentation:
@@ -131,34 +130,28 @@ public class ItemPagerFragment extends Fragment {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(result -> {
                     item = result;
-                    getActivity().invalidateOptionsMenu();
+                    invalidateOptionsMenu();
                 }, Throwable::printStackTrace);
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    private void invalidateOptionsMenu() {
         if (!isAdded() || item == null) {
             return;
         }
-        super.onCreateOptionsMenu(menu, inflater);
         if (Flavors.FLAVOR == Flavors.PLAY) {
             ((CastEnabledActivity) getActivity()).requestCastButton(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
-        inflater.inflate(R.menu.feeditem_options, menu);
-
-        if (menu != null && item != null) {
-            if (item.hasMedia()) {
-                FeedItemMenuHandler.onPrepareMenu(menu, item);
-            } else {
-                // these are already available via button1 and button2
-                FeedItemMenuHandler.onPrepareMenu(menu, item,
-                        R.id.mark_read_item, R.id.visit_website_item);
-            }
+        if (item.hasMedia()) {
+            FeedItemMenuHandler.onPrepareMenu(toolbar.getMenu(), item);
+        } else {
+            // these are already available via button1 and button2
+            FeedItemMenuHandler.onPrepareMenu(toolbar.getMenu(), item,
+                    R.id.mark_read_item, R.id.visit_website_item);
         }
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem menuItem) {
+    public boolean onMenuItemClick(MenuItem menuItem) {
         switch (menuItem.getItemId()) {
             case R.id.open_podcast:
                 openPodcast();
@@ -173,7 +166,7 @@ public class ItemPagerFragment extends Fragment {
         for (FeedItem item : event.items) {
             if (this.item != null && this.item.getId() == item.getId()) {
                 this.item = item;
-                getActivity().invalidateOptionsMenu();
+                invalidateOptionsMenu();
                 return;
             }
         }
