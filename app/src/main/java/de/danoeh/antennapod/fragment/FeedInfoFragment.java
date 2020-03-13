@@ -6,25 +6,27 @@ import android.content.Intent;
 import android.graphics.LightingColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.NavUtils;
+import androidx.fragment.app.Fragment;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
+import com.google.android.material.snackbar.Snackbar;
 import com.joanzapata.iconify.Iconify;
 import de.danoeh.antennapod.R;
-import de.danoeh.antennapod.activity.MainActivity;
 import de.danoeh.antennapod.core.dialog.DownloadRequestErrorDialogCreator;
 import de.danoeh.antennapod.core.feed.Feed;
 import de.danoeh.antennapod.core.glide.ApGlideSettings;
@@ -33,21 +35,20 @@ import de.danoeh.antennapod.core.storage.DBReader;
 import de.danoeh.antennapod.core.storage.DownloadRequestException;
 import de.danoeh.antennapod.core.util.IntentUtils;
 import de.danoeh.antennapod.core.util.LangUtils;
+import de.danoeh.antennapod.core.util.ThemeUtils;
 import de.danoeh.antennapod.core.util.syndication.HtmlToPlainText;
 import de.danoeh.antennapod.menuhandler.FeedMenuHandler;
+import de.danoeh.antennapod.view.ToolbarIconTintManager;
 import io.reactivex.Maybe;
 import io.reactivex.MaybeOnSubscribe;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import org.apache.commons.lang3.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 
 /**
  * Displays information about a feed.
  */
-public class FeedInfoFragment extends Fragment {
+public class FeedInfoFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     private static final String EXTRA_FEED_ID = "de.danoeh.antennapod.extra.feedId";
     private static final String TAG = "FeedInfoActivity";
@@ -64,6 +65,7 @@ public class FeedInfoFragment extends Fragment {
     private TextView txtvUrl;
     private TextView txtvAuthorHeader;
     private ImageView imgvBackground;
+    private Toolbar toolbar;
 
     public static FeedInfoFragment newInstance(Feed feed) {
         FeedInfoFragment fragment = new FeedInfoFragment();
@@ -82,24 +84,16 @@ public class FeedInfoFragment extends Fragment {
                 android.content.ClipboardManager cm = (android.content.ClipboardManager) getContext()
                         .getSystemService(Context.CLIPBOARD_SERVICE);
                 cm.setPrimaryClip(clipData);
-                Toast t = Toast.makeText(getContext(), R.string.copied_url_msg, Toast.LENGTH_SHORT);
-                t.show();
+                Snackbar.make(getView(), R.string.copied_url_msg, Snackbar.LENGTH_SHORT).show();
             }
         }
     };
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(R.string.feed_info_label);
-    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.feedinfo, null);
-        setHasOptionsMenu(true);
 
         imgvCover = root.findViewById(R.id.imgvCover);
         txtvTitle = root.findViewById(R.id.txtvTitle);
@@ -110,6 +104,20 @@ public class FeedInfoFragment extends Fragment {
         // https://github.com/bumptech/glide/issues/529
         imgvBackground.setColorFilter(new LightingColorFilter(0xff828282, 0x000000));
 
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(this);
+        toolbar.inflateMenu(R.menu.feedinfo);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
+
+        AppBarLayout appBar = root.findViewById(R.id.appBar);
+        CollapsingToolbarLayout collapsingToolbar = root.findViewById(R.id.collapsing_toolbar);
+        appBar.addOnOffsetChangedListener(new ToolbarIconTintManager(getContext(), toolbar, collapsingToolbar) {
+            @Override
+            protected void doTint(Context themedContext) {
+                toolbar.getMenu().findItem(R.id.visit_website_item)
+                        .setIcon(ThemeUtils.getDrawableFromAttr(themedContext, R.attr.location_web_site));
+            }
+        });
 
         txtvDescription = root.findViewById(R.id.txtvDescription);
         lblLanguage = root.findViewById(R.id.lblLanguage);
@@ -142,6 +150,10 @@ public class FeedInfoFragment extends Fragment {
     }
 
     private void showFeed() {
+        toolbar.getMenu().findItem(R.id.share_link_item).setVisible(feed.getLink() != null);
+        toolbar.getMenu().findItem(R.id.visit_website_item).setVisible(feed.getLink() != null
+                && IntentUtils.isCallable(getContext(), new Intent(Intent.ACTION_VIEW, Uri.parse(feed.getLink()))));
+
         Log.d(TAG, "Language is " + feed.getLanguage());
         Log.d(TAG, "Author is " + feed.getAuthor());
         Log.d(TAG, "URL is " + feed.getDownload_url());
@@ -185,8 +197,6 @@ public class FeedInfoFragment extends Fragment {
         }
         txtvUrl.setText(feed.getDownload_url() + " {fa-paperclip}");
         Iconify.addIcons(txtvUrl);
-
-        getActivity().invalidateOptionsMenu();
     }
 
     @Override
@@ -198,21 +208,7 @@ public class FeedInfoFragment extends Fragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.feedinfo, menu);
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-        menu.findItem(R.id.share_link_item).setVisible(feed != null && feed.getLink() != null);
-        menu.findItem(R.id.visit_website_item).setVisible(feed != null && feed.getLink() != null
-                && IntentUtils.isCallable(getContext(), new Intent(Intent.ACTION_VIEW, Uri.parse(feed.getLink()))));
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onMenuItemClick(MenuItem item) {
         if (feed == null) {
             Toast.makeText(getContext(), R.string.please_wait_for_data, Toast.LENGTH_LONG).show();
             return super.onOptionsItemSelected(item);
