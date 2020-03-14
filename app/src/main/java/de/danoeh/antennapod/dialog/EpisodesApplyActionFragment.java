@@ -6,33 +6,20 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.PluralsRes;
 import androidx.annotation.StringRes;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.collection.ArrayMap;
-import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-
 import com.google.android.material.snackbar.Snackbar;
 import com.leinardi.android.speeddial.SpeedDialView;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.core.dialog.DownloadRequestErrorDialogCreator;
 import de.danoeh.antennapod.core.feed.FeedItem;
@@ -43,7 +30,13 @@ import de.danoeh.antennapod.core.util.FeedItemPermutors;
 import de.danoeh.antennapod.core.util.LongList;
 import de.danoeh.antennapod.core.util.SortOrder;
 
-public class EpisodesApplyActionFragment extends Fragment {
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+public class EpisodesApplyActionFragment extends Fragment implements Toolbar.OnMenuItemClickListener {
 
     public static final String TAG = "EpisodeActionFragment";
 
@@ -77,20 +70,16 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private final List<? extends ActionBinding> actionBindings;
 
-    private ListView mListView;
-    private ArrayAdapter<String> mAdapter;
+    private Toolbar toolbar;
+    private ListView listView;
+    private ArrayAdapter<String> adapter;
+    private SpeedDialView speedDialView;
 
-    private SpeedDialView mSpeedDialView;
-    @NonNull
-    private CharSequence actionBarTitleOriginal = "";
-
-    private final Map<Long,FeedItem> idMap = new ArrayMap<>();
+    private final Map<Long, FeedItem> idMap = new ArrayMap<>();
     private final List<FeedItem> episodes = new ArrayList<>();
     private int actions;
     private final List<String> titles = new ArrayList<>();
     private final LongList checkedIds = new LongList();
-
-    private MenuItem mSelectToggle;
 
     public EpisodesApplyActionFragment() {
         actionBindings = Arrays.asList(
@@ -127,7 +116,6 @@ public class EpisodesApplyActionFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        setHasOptionsMenu(true);
     }
 
     @Override
@@ -135,9 +123,9 @@ public class EpisodesApplyActionFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.episodes_apply_action_fragment, container, false);
 
-        mListView = view.findViewById(android.R.id.list);
-        mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        mListView.setOnItemClickListener((ListView, view1, position, rowId) -> {
+        listView = view.findViewById(android.R.id.list);
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+        listView.setOnItemClickListener((listView, view1, position, rowId) -> {
             long id = episodes.get(position).getId();
             if (checkedIds.contains(id)) {
                 checkedIds.remove(id);
@@ -146,7 +134,7 @@ public class EpisodesApplyActionFragment extends Fragment {
             }
             refreshCheckboxes();
         });
-        mListView.setOnItemLongClickListener((adapterView, view12, position, id) -> {
+        listView.setOnItemLongClickListener((adapterView, view12, position, id) -> {
             new AlertDialog.Builder(getActivity())
                     .setItems(R.array.batch_long_press_options, (dialogInterface, item) -> {
                         int direction;
@@ -174,24 +162,27 @@ public class EpisodesApplyActionFragment extends Fragment {
             titles.add(episode.getTitle());
         }
 
-        mAdapter = new ArrayAdapter<>(getActivity(),
+        adapter = new ArrayAdapter<>(getActivity(),
                 R.layout.simple_list_item_multiple_choice_on_start, titles);
-        mListView.setAdapter(mAdapter);
+        listView.setAdapter(adapter);
 
-        saveActionBarTitle(); // needed when we dynamically change the title based on selection
+        toolbar = view.findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(this);
+        toolbar.inflateMenu(R.menu.episodes_apply_action_options);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
 
         // Init action UI (via a FAB Speed Dial)
-        mSpeedDialView = view.findViewById(R.id.fabSD);
-        mSpeedDialView.inflate(R.menu.episodes_apply_action_speeddial);
+        speedDialView = view.findViewById(R.id.fabSD);
+        speedDialView.inflate(R.menu.episodes_apply_action_speeddial);
 
         // show only specified actions, and bind speed dial UIs to the actual logic
         for (ActionBinding binding : actionBindings) {
             if ((actions & binding.flag) == 0) {
-                mSpeedDialView.removeActionItemById(binding.actionItemId);
+                speedDialView.removeActionItemById(binding.actionItemId);
             }
         }
 
-        mSpeedDialView.setOnActionSelectedListener(actionItem -> {
+        speedDialView.setOnActionSelectedListener(actionItem -> {
             ActionBinding selectedBinding = null;
             for (ActionBinding binding : actionBindings) {
                 if (actionItem.getId() == binding.actionItemId) {
@@ -208,46 +199,21 @@ public class EpisodesApplyActionFragment extends Fragment {
         });
 
         showSpeedDialIfAnyChecked();
-
+        refreshCheckboxes();
         return view;
-    }
-
-    @Override
-    public void onStop() {
-        restoreActionBarTitle(); // it might have been changed to "N selected". Restore original.
-        super.onStop();
     }
 
     private void showSpeedDialIfAnyChecked() {
         if (checkedIds.size() > 0) {
-            if (!mSpeedDialView.isShown()) {
-                mSpeedDialView.show();
+            if (!speedDialView.isShown()) {
+                speedDialView.show();
             }
         } else {
-            mSpeedDialView.hide(); // hide() also handles UI, e.g., overlay properly.
+            speedDialView.hide(); // hide() also handles UI, e.g., overlay properly.
         }
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.episodes_apply_action_options, menu);
-
-        mSelectToggle = menu.findItem(R.id.select_toggle);
-        mSelectToggle.setOnMenuItemClickListener(item -> {
-            if (checkedIds.size() == episodes.size()) {
-                checkNone();
-            } else {
-                checkAll();
-            }
-            return true;
-        });
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        // Prepare icon for select toggle button
-
+    private void updateSelectToggleIcon() {
         int[] icon = new int[1];
         @StringRes int titleResId;
         if (checkedIds.size() == episodes.size()) {
@@ -262,8 +228,9 @@ public class EpisodesApplyActionFragment extends Fragment {
         Drawable iconDrawable = a.getDrawable(0);
         a.recycle();
 
-        mSelectToggle.setIcon(iconDrawable);
-        mSelectToggle.setTitle(titleResId);
+        MenuItem selectToggle = toolbar.getMenu().findItem(R.id.select_toggle);
+        selectToggle.setIcon(iconDrawable);
+        selectToggle.setTitle(titleResId);
     }
 
     private static final Map<Integer, SortOrder> menuItemIdToSortOrder;
@@ -279,9 +246,16 @@ public class EpisodesApplyActionFragment extends Fragment {
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onMenuItemClick(MenuItem item) {
         @StringRes int resId = 0;
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
+            case R.id.select_toggle:
+                if (checkedIds.size() == episodes.size()) {
+                    checkNone();
+                } else {
+                    checkAll();
+                }
+                return true;
             case R.id.select_options:
                 return true;
             case R.id.check_all:
@@ -327,7 +301,7 @@ public class EpisodesApplyActionFragment extends Fragment {
                     return true;
                 }
         }
-        if(resId != 0) {
+        if (resId != 0) {
             Snackbar.make(getActivity().findViewById(R.id.content), resId, Snackbar.LENGTH_SHORT)
                     .show();
             return true;
@@ -345,7 +319,7 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private void checkAll() {
         for (FeedItem episode : episodes) {
-            if(!checkedIds.contains(episode.getId())) {
+            if (!checkedIds.contains(episode.getId())) {
                 checkedIds.add(episode.getId());
             }
         }
@@ -359,12 +333,12 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private void checkPlayed(boolean isPlayed) {
         for (FeedItem episode : episodes) {
-            if(episode.isPlayed() == isPlayed) {
-                if(!checkedIds.contains(episode.getId())) {
+            if (episode.isPlayed() == isPlayed) {
+                if (!checkedIds.contains(episode.getId())) {
                     checkedIds.add(episode.getId());
                 }
             } else {
-                if(checkedIds.contains(episode.getId())) {
+                if (checkedIds.contains(episode.getId())) {
                     checkedIds.remove(episode.getId());
                 }
             }
@@ -374,12 +348,12 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private void checkDownloaded(boolean isDownloaded) {
         for (FeedItem episode : episodes) {
-            if(episode.hasMedia() && episode.getMedia().isDownloaded() == isDownloaded) {
-                if(!checkedIds.contains(episode.getId())) {
+            if (episode.hasMedia() && episode.getMedia().isDownloaded() == isDownloaded) {
+                if (!checkedIds.contains(episode.getId())) {
                     checkedIds.add(episode.getId());
                 }
             } else {
-                if(checkedIds.contains(episode.getId())) {
+                if (checkedIds.contains(episode.getId())) {
                     checkedIds.remove(episode.getId());
                 }
             }
@@ -389,7 +363,7 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private void checkQueued(boolean isQueued) {
         for (FeedItem episode : episodes) {
-            if(episode.isTagged(FeedItem.TAG_QUEUE) == isQueued) {
+            if (episode.isTagged(FeedItem.TAG_QUEUE) == isQueued) {
                 checkedIds.add(episode.getId());
             } else {
                 checkedIds.remove(episode.getId());
@@ -400,7 +374,7 @@ public class EpisodesApplyActionFragment extends Fragment {
 
     private void checkWithMedia() {
         for (FeedItem episode : episodes) {
-            if(episode.hasMedia()) {
+            if (episode.hasMedia()) {
                 checkedIds.add(episode.getId());
             } else {
                 checkedIds.remove(episode.getId());
@@ -414,46 +388,18 @@ public class EpisodesApplyActionFragment extends Fragment {
         for (FeedItem episode : episodes) {
             titles.add(episode.getTitle());
         }
-        mAdapter.notifyDataSetChanged();
+        adapter.notifyDataSetChanged();
     }
 
     private void refreshCheckboxes() {
         for (int i = 0; i < episodes.size(); i++) {
             FeedItem episode = episodes.get(i);
             boolean checked = checkedIds.contains(episode.getId());
-            mListView.setItemChecked(i, checked);
+            listView.setItemChecked(i, checked);
         }
-        ActivityCompat.invalidateOptionsMenu(EpisodesApplyActionFragment.this.getActivity());
+        updateSelectToggleIcon();
         showSpeedDialIfAnyChecked();
-        updateActionBarTitle();
-    }
-
-    private void saveActionBarTitle() {
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            CharSequence title = actionBar.getTitle();
-            if (title == null) {
-                title = "";
-            }
-            actionBarTitleOriginal = title;
-        }
-    }
-
-    private void restoreActionBarTitle() {
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(actionBarTitleOriginal);
-        }
-    }
-
-    private void updateActionBarTitle() {
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            CharSequence title = checkedIds.size() > 0 ?
-                    getString(R.string.num_selected_label, checkedIds.size()) :
-                    actionBarTitleOriginal;
-            actionBar.setTitle(title);
-        }
+        toolbar.setTitle(getString(R.string.num_selected_label, checkedIds.size()));
     }
 
     private void queueChecked() {
@@ -487,7 +433,7 @@ public class EpisodesApplyActionFragment extends Fragment {
         // download the check episodes in the same order as they are currently displayed
         List<FeedItem> toDownload = new ArrayList<>(checkedIds.size());
         for (FeedItem episode : episodes) {
-            if(checkedIds.contains(episode.getId()) && episode.hasMedia()) {
+            if (checkedIds.contains(episode.getId()) && episode.hasMedia()) {
                 toDownload.add(episode);
             }
         }
@@ -503,7 +449,7 @@ public class EpisodesApplyActionFragment extends Fragment {
     private void deleteChecked() {
         for (long id : checkedIds.toArray()) {
             FeedItem episode = idMap.get(id);
-            if(episode.hasMedia()) {
+            if (episode.hasMedia()) {
                 DBWriter.deleteFeedMediaOfItem(getActivity(), episode.getMedia().getId());
             }
         }
@@ -521,5 +467,4 @@ public class EpisodesApplyActionFragment extends Fragment {
         }
         getActivity().getSupportFragmentManager().popBackStack();
     }
-
 }
