@@ -25,16 +25,20 @@ import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.action.ViewActions.typeText;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.contrib.ActivityResultMatchers.hasResultCode;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.times;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static de.test.antennapod.EspressoTestUtils.clickPreference;
 import static de.test.antennapod.EspressoTestUtils.openNavDrawer;
+import static de.test.antennapod.EspressoTestUtils.toolbarTitle;
 import static de.test.antennapod.EspressoTestUtils.waitForView;
+import static de.test.antennapod.NthMatcher.nth;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -84,10 +88,6 @@ public class MainActivityTest {
         onView(isRoot()).perform(waitForView(withId(R.id.butShowSettings), 5000));
     }
 
-    private String getActionbarTitle() {
-        return ((MainActivity) solo.getCurrentActivity()).getSupportActionBar().getTitle().toString();
-    }
-
     @Test
     public void testBackButtonBehaviorGoToPage() {
         openNavDrawer();
@@ -101,7 +101,7 @@ public class MainActivityTest {
 
         solo.goBackToActivity(MainActivity.class.getSimpleName());
         solo.goBack();
-        assertEquals(solo.getString(R.string.subscriptions_label), getActionbarTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.subscriptions_label)));
     }
 
     @Test
@@ -113,7 +113,7 @@ public class MainActivityTest {
         onView(withText(R.string.back_button_open_drawer)).perform(click());
         solo.goBackToActivity(MainActivity.class.getSimpleName());
         solo.goBack();
-        assertTrue(((MainActivity)solo.getCurrentActivity()).isDrawerOpen());
+        assertTrue(((MainActivity) solo.getCurrentActivity()).isDrawerOpen());
     }
 
     @Test

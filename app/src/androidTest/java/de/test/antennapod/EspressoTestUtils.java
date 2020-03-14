@@ -2,6 +2,7 @@ package de.test.antennapod;
 
 import android.content.Context;
 import android.content.Intent;
+import android.widget.TextView;
 import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
 import androidx.test.InstrumentationRegistry;
@@ -33,8 +34,10 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class EspressoTestUtils {
     /**
@@ -191,5 +194,9 @@ public class EspressoTestUtils {
             e.printStackTrace();
         }
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+    }
+
+    public static Matcher<View> toolbarTitle() {
+        return allOf(instanceOf(TextView.class), withParent(withId(R.id.toolbar)));
     }
 }

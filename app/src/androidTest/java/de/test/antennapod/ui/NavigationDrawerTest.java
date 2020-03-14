@@ -32,16 +32,23 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.longClick;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.action.ViewActions.swipeUp;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static de.test.antennapod.EspressoTestUtils.onDrawerItem;
+import static de.test.antennapod.EspressoTestUtils.toolbarTitle;
 import static de.test.antennapod.EspressoTestUtils.waitForView;
 import static de.test.antennapod.NthMatcher.first;
+import static de.test.antennapod.NthMatcher.nth;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -80,44 +87,43 @@ public class NavigationDrawerTest {
         uiTestUtils.addLocalFeedData(false);
         UserPreferences.setHiddenDrawerItems(new ArrayList<>());
         activityRule.launchActivity(new Intent());
-        MainActivity activity = activityRule.getActivity();
 
         // queue
         openNavDrawer();
         onDrawerItem(withText(R.string.queue_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(R.id.recyclerView), 1000));
-        assertEquals(activity.getString(R.string.queue_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.queue_label)));
 
         // episodes
         openNavDrawer();
         onDrawerItem(withText(R.string.episodes_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(android.R.id.list), 1000));
-        assertEquals(activity.getString(R.string.episodes_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.episodes_label)));
 
         // Subscriptions
         openNavDrawer();
         onDrawerItem(withText(R.string.subscriptions_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(R.id.subscriptions_grid), 1000));
-        assertEquals(activity.getString(R.string.subscriptions_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.subscriptions_label)));
 
         // downloads
         openNavDrawer();
         onDrawerItem(withText(R.string.downloads_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(android.R.id.list), 1000));
-        assertEquals(activity.getString(R.string.downloads_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.downloads_label)));
 
         // playback history
         openNavDrawer();
         onDrawerItem(withText(R.string.playback_history_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(android.R.id.list), 1000));
-        assertEquals(activity.getString(R.string.playback_history_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.playback_history_label)));
 
         // add podcast
         openNavDrawer();
         onView(withId(R.id.nav_list)).perform(swipeUp());
         onDrawerItem(withText(R.string.add_feed_label)).perform(click());
         onView(isRoot()).perform(waitForView(withId(R.id.txtvFeedurl), 1000));
-        assertEquals(activity.getString(R.string.add_feed_label), activity.getSupportActionBar().getTitle());
+        onView(toolbarTitle()).check(matches(withText(R.string.add_feed_label)));
 
         // podcasts
         for (int i = 0; i < uiTestUtils.hostedFeeds.size(); i++) {
@@ -125,7 +131,9 @@ public class NavigationDrawerTest {
             openNavDrawer();
             onDrawerItem(withText(f.getTitle())).perform(scrollTo(), click());
             onView(isRoot()).perform(waitForView(withId(android.R.id.list), 1000));
-            assertEquals("", activity.getSupportActionBar().getTitle());
+            onView(isRoot()).perform(waitForView(allOf(withId(R.id.txtvTitle),
+                    isDescendantOfA(withId(R.id.collapsing_toolbar)),
+                    withText(uiTestUtils.hostedFeeds.get(i).getTitle())), 1000));
         }
     }
 
