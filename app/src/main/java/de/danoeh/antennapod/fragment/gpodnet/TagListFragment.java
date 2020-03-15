@@ -1,27 +1,18 @@
 package de.danoeh.antennapod.fragment.gpodnet;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.fragment.app.ListFragment;
-import androidx.core.view.MenuItemCompat;
-import androidx.appcompat.widget.SearchView;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
-
-import java.util.List;
-
-import de.danoeh.antennapod.R;
+import androidx.fragment.app.ListFragment;
 import de.danoeh.antennapod.activity.MainActivity;
 import de.danoeh.antennapod.adapter.gpodnet.TagListAdapter;
 import de.danoeh.antennapod.core.gpoddernet.GpodnetService;
 import de.danoeh.antennapod.core.gpoddernet.GpodnetServiceException;
 import de.danoeh.antennapod.core.gpoddernet.model.GpodnetTag;
-import de.danoeh.antennapod.menuhandler.MenuItemUtils;
+
+import java.util.List;
 
 public class TagListFragment extends ListFragment {
 
@@ -29,40 +20,10 @@ public class TagListFragment extends ListFragment {
     private static final int COUNT = 50;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.gpodder_podcasts, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
-        final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
-        sv.setQueryHint(getString(R.string.gpodnet_search_hint));
-        sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String s) {
-                Activity activity = getActivity();
-                if (activity != null) {
-                    sv.clearFocus();
-                    ((MainActivity) activity).loadChildFragment(SearchListFragment.newInstance(s));
-                }
-                return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String s) {
-                return false;
-            }
-        });
-    }
-
-    @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        getListView().setDividerHeight(0);
         getListView().setOnItemClickListener((parent, view1, position, id) -> {
             GpodnetTag tag = (GpodnetTag) getListAdapter().getItem(position);
             MainActivity activity = (MainActivity) getActivity();
@@ -70,12 +31,6 @@ public class TagListFragment extends ListFragment {
         });
 
         startLoadTask();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(R.string.add_feed_label);
     }
 
     @Override

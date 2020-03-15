@@ -43,12 +43,6 @@ public class TagFragment extends PodcastListFragment {
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(tag.getTitle());
-    }
-
-    @Override
     protected List<GpodnetPodcast> loadPodcastData(GpodnetService service) throws GpodnetServiceException {
         return service.getPodcastsForTag(tag, PODCAST_COUNT);
     }

@@ -3,14 +3,13 @@ package de.danoeh.antennapod.fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.core.view.MenuItemCompat;
 import androidx.appcompat.widget.SearchView;
 import androidx.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +28,6 @@ import java.util.List;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.activity.OnlineFeedViewActivity;
 import de.danoeh.antennapod.adapter.itunes.ItunesAdapter;
-import de.danoeh.antennapod.menuhandler.MenuItemUtils;
 import io.reactivex.disposables.Disposable;
 
 //Searches iTunes store for given string and displays results in a list
@@ -54,6 +52,7 @@ public class ItunesSearchFragment extends Fragment {
     private List<PodcastSearchResult> searchResults;
     private List<PodcastSearchResult> topList;
     private Disposable disposable;
+    private Toolbar toolbar;
 
     /**
      * Replace adapter data with provided search results from SearchTask.
@@ -93,6 +92,11 @@ public class ItunesSearchFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View root = inflater.inflate(R.layout.fragment_itunes_search, container, false);
+
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
+        setupMenu();
+
         gridView = root.findViewById(R.id.gridView);
         adapter = new ItunesAdapter(getActivity(), new ArrayList<>());
         gridView.setAdapter(adapter);
@@ -144,11 +148,9 @@ public class ItunesSearchFragment extends Fragment {
         adapter = null;
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.itunes_search, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
+    public void setupMenu() {
+        toolbar.inflateMenu(R.menu.itunes_search);
+        MenuItem searchItem = toolbar.getMenu().findItem(R.id.action_search);
         final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
         sv.setQueryHint(getString(R.string.search_itunes_label));
         sv.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {

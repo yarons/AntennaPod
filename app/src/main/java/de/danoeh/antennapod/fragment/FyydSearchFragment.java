@@ -2,13 +2,8 @@ package de.danoeh.antennapod.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
-import androidx.fragment.app.Fragment;
-import androidx.core.view.MenuItemCompat;
-import androidx.appcompat.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,12 +11,15 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.MenuItemCompat;
+import androidx.fragment.app.Fragment;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.activity.OnlineFeedViewActivity;
 import de.danoeh.antennapod.adapter.itunes.ItunesAdapter;
 import de.danoeh.antennapod.discovery.FyydPodcastSearcher;
 import de.danoeh.antennapod.discovery.PodcastSearchResult;
-import de.danoeh.antennapod.menuhandler.MenuItemUtils;
 import io.reactivex.disposables.Disposable;
 
 import java.util.ArrayList;
@@ -46,6 +44,7 @@ public class FyydSearchFragment extends Fragment {
      */
     private List<PodcastSearchResult> searchResults;
     private Disposable disposable;
+    private Toolbar toolbar;
 
     /**
      * Constructor
@@ -68,6 +67,10 @@ public class FyydSearchFragment extends Fragment {
         gridView = root.findViewById(R.id.gridView);
         adapter = new ItunesAdapter(getActivity(), new ArrayList<>());
         gridView.setAdapter(adapter);
+
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
+        setupMenu();
 
         //Show information about the podcast when the list item is clicked
         gridView.setOnItemClickListener((parent, view1, position, id) -> {
@@ -94,11 +97,9 @@ public class FyydSearchFragment extends Fragment {
         adapter = null;
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.itunes_search, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
+    private void setupMenu() {
+        toolbar.inflateMenu(R.menu.itunes_search);
+        MenuItem searchItem = toolbar.getMenu().findItem(R.id.action_search);
         final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
         sv.setQueryHint(getString(R.string.search_fyyd_label));
         sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {

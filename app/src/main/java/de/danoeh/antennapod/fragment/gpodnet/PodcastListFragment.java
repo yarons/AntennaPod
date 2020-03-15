@@ -4,31 +4,23 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.fragment.app.Fragment;
-import androidx.core.view.MenuItemCompat;
-import androidx.appcompat.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import java.util.List;
-
+import androidx.fragment.app.Fragment;
 import de.danoeh.antennapod.R;
-import de.danoeh.antennapod.activity.MainActivity;
 import de.danoeh.antennapod.activity.OnlineFeedViewActivity;
 import de.danoeh.antennapod.adapter.gpodnet.PodcastListAdapter;
 import de.danoeh.antennapod.core.gpoddernet.GpodnetService;
 import de.danoeh.antennapod.core.gpoddernet.GpodnetServiceException;
 import de.danoeh.antennapod.core.gpoddernet.model.GpodnetPodcast;
-import de.danoeh.antennapod.menuhandler.MenuItemUtils;
+
+import java.util.List;
 
 /**
  * Displays a list of GPodnetPodcast-Objects in a GridView
@@ -41,37 +33,6 @@ public abstract class PodcastListFragment extends Fragment {
     private ProgressBar progressBar;
     private TextView txtvError;
     private Button butRetry;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.gpodder_podcasts, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
-        final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
-        sv.setQueryHint(getString(R.string.gpodnet_search_hint));
-        sv.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String s) {
-                sv.clearFocus();
-                MainActivity activity = (MainActivity)getActivity();
-                if (activity != null) {
-                    activity.loadChildFragment(SearchListFragment.newInstance(s));
-                }
-                return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String s) {
-                return false;
-            }
-        });
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {

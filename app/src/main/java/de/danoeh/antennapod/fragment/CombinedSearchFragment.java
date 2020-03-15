@@ -2,6 +2,7 @@ package de.danoeh.antennapod.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.core.view.MenuItemCompat;
 import androidx.appcompat.widget.SearchView;
@@ -47,6 +48,7 @@ public class CombinedSearchFragment extends Fragment {
      */
     private List<PodcastSearchResult> searchResults = new ArrayList<>();
     private Disposable disposable;
+    private Toolbar toolbar;
 
     /**
      * Constructor
@@ -58,7 +60,6 @@ public class CombinedSearchFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
     }
 
     @Override
@@ -83,6 +84,11 @@ public class CombinedSearchFragment extends Fragment {
         butRetry = root.findViewById(R.id.butRetry);
         txtvEmpty = root.findViewById(android.R.id.empty);
 
+        toolbar = root.findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> getActivity().onBackPressed());
+        toolbar.setTitle(R.string.search_label);
+        setupMenu();
+
         return root;
     }
 
@@ -95,11 +101,9 @@ public class CombinedSearchFragment extends Fragment {
         adapter = null;
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.itunes_search, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
+    public void setupMenu() {
+        toolbar.inflateMenu(R.menu.itunes_search);
+        MenuItem searchItem = toolbar.getMenu().findItem(R.id.action_search);
         final SearchView sv = (SearchView) MenuItemCompat.getActionView(searchItem);
         sv.setQueryHint(getString(R.string.search_label));
         sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
