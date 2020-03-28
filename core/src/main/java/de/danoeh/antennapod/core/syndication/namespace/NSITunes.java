@@ -5,7 +5,6 @@ import android.util.Log;
 
 import org.xml.sax.Attributes;
 
-import de.danoeh.antennapod.core.feed.FeedItem;
 import de.danoeh.antennapod.core.syndication.handler.HandlerState;
 import de.danoeh.antennapod.core.syndication.parsers.DurationParser;
 
@@ -87,7 +86,7 @@ public class NSITunes extends Namespace {
         }
         if (state.getCurrentItem() != null) {
             if (TextUtils.isEmpty(state.getCurrentItem().getDescription())) {
-                state.getCurrentItem().setDescription(subtitle);
+                state.getCurrentItem().setDescriptionIfLonger(subtitle);
             }
         } else {
             if (state.getFeed() != null && TextUtils.isEmpty(state.getFeed().getDescription())) {
@@ -102,16 +101,10 @@ public class NSITunes extends Namespace {
             return;
         }
 
-        FeedItem currentItem = state.getCurrentItem();
-        String description = getDescription(currentItem);
-        if (currentItem != null && description.length() * 1.25 < summary.length()) {
-            currentItem.setDescription(summary);
+        if (state.getCurrentItem() != null) {
+            state.getCurrentItem().setDescriptionIfLonger(summary);
         } else if (NSRSS20.CHANNEL.equals(secondElementName) && state.getFeed() != null) {
             state.getFeed().setDescription(summary);
         }
-    }
-
-    private String getDescription(FeedItem item) {
-        return (item != null && item.getDescription() != null) ? item.getDescription() : "";
     }
 }

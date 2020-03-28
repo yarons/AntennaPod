@@ -231,7 +231,8 @@ public class OnlineFeedViewActivity extends AppCompatActivity {
         url = URLChecker.prepareURL(url);
         feed = new Feed(url, null);
         if (username != null && password != null) {
-            feed.setPreferences(new FeedPreferences(0, false, FeedPreferences.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, username, password));
+            feed.setPreferences(new FeedPreferences(0, false, FeedPreferences.AutoDeleteAction.GLOBAL,
+                    VolumeAdaptionSetting.OFF, username, password));
         }
         String fileUrl = new File(getExternalCacheDir(),
                 FileNameGenerator.generateFileName(feed.getDownload_url())).toString();
@@ -304,17 +305,12 @@ public class OnlineFeedViewActivity extends AppCompatActivity {
                 .subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(optionalResult -> {
-                    if(optionalResult.isPresent()) {
+                    if (optionalResult.isPresent()) {
                         FeedHandlerResult result = optionalResult.get();
-                        beforeShowFeedInformation(result.feed);
                         showFeedInformation(result.feed, result.alternateFeedUrls);
                     }
-                }, error -> {
-                    String errorMsg = DownloadError.ERROR_PARSER_EXCEPTION.getErrorString(
-                            OnlineFeedViewActivity.this) + " (" + error.getMessage() + ")";
-                    showErrorDialog(errorMsg);
-                    Log.d(TAG, "Feed parser exception: " + Log.getStackTraceString(error));
-                });
+                }, error -> showErrorDialog(DownloadError.ERROR_PARSER_EXCEPTION.getErrorString(this)
+                        + " (" + error.getMessage() + ")"));
     }
 
     @NonNull
@@ -341,23 +337,6 @@ public class OnlineFeedViewActivity extends AppCompatActivity {
         } finally {
             boolean rc = new File(feed.getFile_url()).delete();
             Log.d(TAG, "Deleted feed source file. Result: " + rc);
-        }
-    }
-
-    /**
-     * Called after the feed has been downloaded and parsed and before showFeedInformation is called.
-     * This method is executed on a background thread
-     */
-    private void beforeShowFeedInformation(Feed feed) {
-        Log.d(TAG, "Removing HTML from feed description");
-
-        feed.setDescription(HtmlToPlainText.getPlainText(feed.getDescription()));
-
-        Log.d(TAG, "Removing HTML from shownotes");
-        if (feed.getItems() != null) {
-            for (FeedItem item : feed.getItems()) {
-                item.setDescription(HtmlToPlainText.getPlainText(item.getDescription()));
-            }
         }
     }
 
@@ -410,7 +389,7 @@ public class OnlineFeedViewActivity extends AppCompatActivity {
 
         title.setText(feed.getTitle());
         author.setText(feed.getAuthor());
-        description.setText(feed.getDescription());
+        description.setText(HtmlToPlainText.getPlainText(feed.getDescription()));
 
         subscribeButton.setOnClickListener(v -> {
             if (feedInFeedlist(feed)) {

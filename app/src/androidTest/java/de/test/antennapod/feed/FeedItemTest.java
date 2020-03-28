@@ -36,8 +36,8 @@ public class FeedItemTest {
      */
     private void testShownotes(String description, String contentEncoded) throws Exception {
         FeedItem item = new FeedItem();
-        item.setDescription(description);
-        item.setContentEncoded(contentEncoded);
+        item.setDescriptionIfLonger(description);
+        item.setDescriptionIfLonger(contentEncoded);
         assertEquals(TEXT_LONG, item.loadShownotes().call());
     }
 }

@@ -99,11 +99,11 @@ public class FeedHandlerTest {
                 FeedItem item = feed.getItems().get(i);
                 FeedItem parsedItem = parsedFeed.getItems().get(i);
 
-                if (item.getItemIdentifier() != null)
+                if (item.getItemIdentifier() != null) {
                     assertEquals(item.getItemIdentifier(), parsedItem.getItemIdentifier());
+                }
                 assertEquals(item.getTitle(), parsedItem.getTitle());
                 assertEquals(item.getDescription(), parsedItem.getDescription());
-                assertEquals(item.getContentEncoded(), parsedItem.getContentEncoded());
                 assertEquals(item.getLink(), parsedItem.getLink());
                 assertEquals(item.getPubDate().getTime(), parsedItem.getPubDate().getTime());
                 assertEquals(item.getPaymentLink(), parsedItem.getPaymentLink());
