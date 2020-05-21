@@ -97,7 +97,6 @@ public abstract class EpisodesListFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        recyclerView.saveScrollPosition(getPrefName());
         unregisterForContextMenu(recyclerView);
     }
 
@@ -269,14 +268,10 @@ public abstract class EpisodesListFragment extends Fragment {
     }
 
     protected void onFragmentLoaded(List<FeedItem> episodes) {
-        boolean restoreScrollPosition = listAdapter.getItemCount() == 0;
         if (episodes.size() == 0) {
             createRecycleAdapter(recyclerView, emptyView);
         } else {
             listAdapter.updateItems(episodes);
-        }
-        if (restoreScrollPosition) {
-            recyclerView.restoreScrollPosition(getPrefName());
         }
         if (isMenuVisible && isUpdatingFeeds != updateRefreshMenuItemChecker.isRefreshing()) {
             requireActivity().invalidateOptionsMenu();
