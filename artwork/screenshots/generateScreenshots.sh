@@ -14,10 +14,6 @@ function simplePhone() {
         $3
 }
 
-function addLayer() {
-    convert $2 $1 -composite $2
-}
-
 function generateScreenshots() {
     language=$1
     mkdir output/$1 2>/dev/null
@@ -41,7 +37,6 @@ function generateScreenshots() {
         output/$language/02.png
     simplePhone "$text4" raw/$language/04.png output/$language/04.png
     simplePhone "$text5" raw/$language/05.png output/$language/05.png
-    addLayer templates/suggestions.png output/$language/05.png
     mogrify -resize 1120 "output/$language/*.png"
 }
 
