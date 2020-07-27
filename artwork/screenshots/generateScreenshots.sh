@@ -44,6 +44,7 @@ mkdir output 2>/dev/null
 
 generateScreenshots "de-DE"
 generateScreenshots "en-US"
+generateScreenshots "fr-FR"
 generateScreenshots "nl-NL"
 
 rm /tmp/text.png
