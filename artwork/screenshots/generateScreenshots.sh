@@ -46,5 +46,7 @@ generateScreenshots "de-DE"
 generateScreenshots "en-US"
 generateScreenshots "fr-FR"
 generateScreenshots "nl-NL"
+generateScreenshots "it-IT"
+generateScreenshots "es-ES"
 
 rm /tmp/text.png
